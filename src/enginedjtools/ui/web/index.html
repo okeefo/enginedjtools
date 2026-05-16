@@ -15,6 +15,18 @@
       --font-display: 'Orbitron', monospace;
       --font-body:    'Rajdhani', sans-serif;
       --font-mono:    'Share Tech Mono', monospace;
+      /* theme-driven font sizes */
+      --fs-title:   18px;
+      --fs-heading: 13px;
+      --fs-body:    13px;
+      --fs-small:   10px;
+      --fs-mono:    11px;
+      --fs-nav:     13px;
+      /* theme-driven spacing */
+      --sidebar-width:  240px;
+      --topbar-height:   56px;
+      --radius:           3px;
+      --radius-lg:        6px;
     }
 
     html, body { height: 100%; background: var(--bg-0); color: var(--text);
@@ -106,7 +118,7 @@
 
     /* ══════════════ SIDEBAR ══ */
     .sidebar {
-      width: 240px; flex-shrink: 0;
+      width: var(--sidebar-width); flex-shrink: 0;
       background: var(--bg-1);
       border-right: 1px solid rgba(0,245,255,0.10);
       display: flex; flex-direction: column; overflow: hidden;
@@ -165,7 +177,7 @@
 
     .nav-icon { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
     .nav-label {
-      font-family: var(--font-body); font-weight: 600; font-size: 13px;
+      font-family: var(--font-body); font-weight: 600; font-size: var(--fs-nav);
       letter-spacing: 0.5px; color: var(--muted); transition: color 0.15s;
     }
     .nav-item:hover .nav-label, .nav-item.active .nav-label { color: var(--text); }
@@ -182,12 +194,12 @@
     .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
     .topbar {
-      height: 58px; flex-shrink: 0; background: var(--bg-1);
+      height: var(--topbar-height); flex-shrink: 0; background: var(--bg-1);
       border-bottom: 1px solid rgba(0,245,255,0.10);
       display: flex; align-items: center; padding: 0 28px; gap: 20px;
     }
     .topbar-title {
-      font-family: var(--font-display); font-size: 13px; font-weight: 700;
+      font-family: var(--font-display); font-size: var(--fs-heading); font-weight: 700;
       letter-spacing: 2px; color: var(--text); flex-shrink: 0;
     }
     .topbar-title span { color: var(--cyan); }
@@ -208,7 +220,7 @@
 
     .section-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 20px; }
     .section-title {
-      font-family: var(--font-display); font-size: 11px; font-weight: 700;
+      font-family: var(--font-display); font-size: var(--fs-heading); font-weight: 700;
       letter-spacing: 3px; color: var(--cyan); text-transform: uppercase;
     }
     .section-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0,245,255,0.3), transparent); }
@@ -296,7 +308,7 @@
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
     .diag-info { flex: 1; }
     .diag-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px; color: var(--muted); }
-    .diag-value { font-family: var(--font-mono); font-size: 11px; color: var(--text); margin-top: 2px; }
+    .diag-value { font-family: var(--font-mono); font-size: var(--fs-mono); color: var(--text); margin-top: 2px; }
     .diag-value.ok   { color: var(--green); }
     .diag-value.warn { color: var(--yellow); }
     .diag-value.error{ color: var(--red); }
@@ -320,7 +332,7 @@
     .space-bar-note { font-family: var(--font-mono); font-size: 9px; color: var(--muted); margin-top: 8px; }
 
     /* ── Track issues table ── */
-    .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
+    .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: var(--fs-mono); }
     .data-table th {
       text-align: left; padding: 8px 12px; background: var(--bg-3); color: var(--muted);
       letter-spacing: 2px; font-size: 9px; font-weight: normal;
@@ -884,6 +896,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
 window.addEventListener('pywebviewready', () => { initApp(); });
 
 async function initApp() {
+  /* Apply saved theme immediately so the correct colours show before any panel loads */
+  try {
+    const active = await pywebview.api.get_active_theme();
+    _theme = active.data;
+    themeApplyAll(active.data);
+  } catch (_) { /* fall through — CSS defaults are fine */ }
+
   try {
     const libs = await pywebview.api.get_libraries();
     if (libs.length === 0) {
@@ -1359,6 +1378,26 @@ const COLOR_CSS = {
   success:'--green', error:'--red',
 };
 const FONT_CSS = { display:'--font-display', body:'--font-body', mono:'--font-mono' };
+const SIZE_CSS = {
+  font_title:   '--fs-title',
+  font_heading: '--fs-heading',
+  font_body:    '--fs-body',
+  font_small:   '--fs-small',
+  font_mono:    '--fs-mono',
+  font_nav:     '--fs-nav',
+  sidebar_width:'--sidebar-width',
+  topbar_height:'--topbar-height',
+  border_radius:'--radius',
+  border_radius_lg:'--radius-lg',
+};
+
+function themeApplyAll(t) {
+  const root = document.documentElement;
+  Object.entries(t.colors  || {}).forEach(([k,v]) => { const c = COLOR_CSS[k]; if (c) root.style.setProperty(c, v); });
+  Object.entries(t.fonts   || {}).forEach(([k,v]) => { const c = FONT_CSS[k];  if (c) root.style.setProperty(c, `'${v}', monospace`); });
+  Object.entries(t.sizes   || {}).forEach(([k,v]) => { const c = SIZE_CSS[k];  if (c) root.style.setProperty(c, v + 'px'); });
+  Object.entries(t.spacing || {}).forEach(([k,v]) => { const c = SIZE_CSS[k];  if (c) root.style.setProperty(c, v + 'px'); });
+}
 
 let _theme = null;
 
@@ -1375,6 +1414,8 @@ async function themeLoad(name) {
   _theme = data;
   themeRender(data);
   themeSetReadonly(data.readonly);
+  themeApplyAll(data);
+  pywebview.api.set_active_theme(name);
 }
 
 async function themeReload() {
@@ -1441,6 +1482,8 @@ function themeSizeChange(key, val) {
   if (!_theme || isNaN(n)) return;
   if (key in (_theme.sizes   || {})) _theme.sizes[key]   = n;
   if (key in (_theme.spacing || {})) _theme.spacing[key] = n;
+  const cssVar = SIZE_CSS[key];
+  if (cssVar) document.documentElement.style.setProperty(cssVar, n + 'px');
 }
 
 function themeSetReadonly(readonly) {
@@ -1470,6 +1513,7 @@ async function themeConfirmSaveAs() {
   const copy = JSON.parse(JSON.stringify(_theme));
   copy.name = name; copy.readonly = false;
   await pywebview.api.save_theme_as(name, copy);
+  _theme = copy;
   themeCancelSaveAs();
   /* refresh list and select the new theme */
   const names = await pywebview.api.get_user_themes();

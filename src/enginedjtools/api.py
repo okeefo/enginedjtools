@@ -260,6 +260,25 @@ class Api:
             for z in zips[:20]
         ]
 
+    # ── Active theme persistence ──────────────────────────────────────────────────
+
+    def get_active_theme(self) -> dict[str, Any]:
+        """Return the saved active theme name + full data. Called at startup."""
+        import json  # noqa: PLC0415
+        settings = _load_settings()
+        name = settings.get("active_theme", "Acid House")
+        data = self.load_theme(name)
+        if not data:
+            name = "Acid House"
+            data = json.loads(_bundled_theme_path().read_text(encoding="utf-8"))
+        return {"name": name, "data": data}
+
+    def set_active_theme(self, name: str) -> None:
+        """Persist the user's active theme choice."""
+        settings = _load_settings()
+        settings["active_theme"] = name
+        _save_settings(settings)
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -281,3 +300,25 @@ def _user_themes_dir() -> Path:
     d = Path.home() / ".enginedjtools" / "themes"
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+def _settings_path() -> Path:
+    return Path.home() / ".enginedjtools" / "settings.json"
+
+
+def _load_settings() -> dict:
+    import json  # noqa: PLC0415
+    p = _settings_path()
+    if p.exists():
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def _save_settings(data: dict) -> None:
+    import json  # noqa: PLC0415
+    p = _settings_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, indent=2), encoding="utf-8")
