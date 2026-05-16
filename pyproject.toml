@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "enginedjtools"
+version = "0.1.0"
+description = "Tools for Denon Engine DJ database management"
+requires-python = ">=3.11"
+dependencies = [
+    "textual>=0.80.0",
+]
+
+[project.scripts]
+enginedjtools = "enginedjtools.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/enginedjtools"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
