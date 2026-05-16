@@ -658,7 +658,6 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>FILE PATH</th>
                   <th>ISSUE</th>
                   <th style="text-align:right">ACTION</th>
@@ -701,7 +700,7 @@
 
         <div id="fn-table-wrap" class="card-wide" style="display:none">
           <table class="data-table">
-            <thead><tr><th>ID</th><th>FILE PATH</th><th>ISSUES</th><th style="text-align:right">ACTION</th></tr></thead>
+            <thead><tr><th>FILE PATH</th><th>ISSUE</th><th style="text-align:right">ACTION</th></tr></thead>
             <tbody id="fn-tbody"></tbody>
           </table>
         </div>
@@ -1207,21 +1206,26 @@ function renderBackupDetail(r) {
     : '';
 }
 
+function issueTags(issues) {
+  return issues.map(i => {
+    if (i.includes('newline')) return '<span class="issue-tag newline" title="Newline/carriage-return character embedded in the stored path — cannot exist in a real Windows filename, so Engine DJ wrote it incorrectly. Fix: strip the character from the DB record.">NEWLINE</span>';
+    if (i.includes('illegal char')) {
+      const detail = i.match(/\(([^)]+)\)/)?.[1] || '';
+      return `<span class="issue-tag illegal" title="Character(s) illegal in a Windows filename: ${escHtml(detail)}. Fix: remove those characters from the DB record.">ILLEGAL ${escHtml(detail)}</span>`;
+    }
+    return `<span class="issue-tag illegal" title="${escHtml(i)}">${escHtml(i).toUpperCase()}</span>`;
+  }).join(' ');
+}
+
 function renderTrackIssues(issues) {
   const tbody = document.getElementById('track-issues-tbody');
   tbody.innerHTML = '';
   issues.forEach(t => {
     const tr = document.createElement('tr');
     tr.id = 'track-row-' + t.track_id;
-    const tags = t.issues.map(i => {
-      if (i.includes('newline'))  return '<span class="issue-tag newline">NEWLINE</span>';
-      if (i.includes('non-ASCII')) return '<span class="issue-tag unicode">NON-ASCII</span>';
-      return '<span class="issue-tag illegal">ILLEGAL</span>';
-    }).join('');
     tr.innerHTML = `
-      <td class="id-cell">${t.track_id}</td>
-      <td class="path-cell" title="${escHtml(t.path)}">${escHtml(t.path)}</td>
-      <td>${tags}</td>
+      <td class="path-cell" style="max-width:480px" title="${escHtml(t.path)}">${escHtml(t.path)}</td>
+      <td>${issueTags(t.issues)}</td>
       <td style="text-align:right">
         <button class="btn btn-danger" style="padding:4px 12px;font-size:9px;letter-spacing:1px"
           onclick="fixTrack(${t.track_id})">FIX</button>
@@ -1340,17 +1344,11 @@ function fnRenderTable(issues) {
   const tbody = document.getElementById('fn-tbody');
   tbody.innerHTML = '';
   issues.forEach(t => {
-    const tags = t.issues.map(iss => {
-      if (iss.includes('newline'))  return '<span class="issue-tag newline">NEWLINE</span>';
-      if (iss.includes('non-ASCII'))return '<span class="issue-tag unicode">NON-ASCII</span>';
-      return '<span class="issue-tag illegal">ILLEGAL</span>';
-    }).join('');
     const tr = document.createElement('tr');
     tr.id = 'fn-row-' + t.track_id;
     tr.innerHTML = `
-      <td class="id-cell">${t.track_id}</td>
-      <td class="path-cell" title="${escHtml(t.path)}">${escHtml(t.path)}</td>
-      <td>${tags}</td>
+      <td class="path-cell" style="max-width:480px" title="${escHtml(t.path)}">${escHtml(t.path)}</td>
+      <td>${issueTags(t.issues)}</td>
       <td style="text-align:right">
         <button class="btn btn-secondary" style="font-size:9px;padding:4px 10px"
                 onclick="fnFix(${t.track_id}, this)">FIX</button>
@@ -1363,8 +1361,17 @@ async function fnFix(trackId, btn) {
   btn.textContent = '…'; btn.disabled = true;
   try {
     const r = await pywebview.api.fix_track(trackId);
-    if (r.ok) document.getElementById('fn-row-' + trackId).classList.add('fixed');
-    else { btn.textContent = 'ERR'; }
+    if (r.ok) {
+      if (r.skipped && r.skipped > 0) {
+        btn.textContent = '⚠ SKIPPED';
+        btn.title = 'File not found at cleaned path — left unchanged to avoid breaking the track reference';
+        btn.style.color = 'var(--yellow)';
+        btn.disabled = false;
+      } else {
+        document.getElementById('fn-row-' + trackId).classList.add('fixed');
+        btn.textContent = '✓'; btn.style.color = 'var(--green)';
+      }
+    } else { btn.textContent = 'ERR'; btn.title = r.error || ''; }
   } catch (e) { btn.textContent = 'ERR'; }
 }
 
@@ -1375,7 +1382,9 @@ async function fnFixAll() {
     const r = await pywebview.api.fix_all_tracks();
     if (r.ok) {
       document.querySelectorAll('#fn-tbody tr').forEach(tr => tr.classList.add('fixed'));
-      document.getElementById('fn-count-label').textContent = `${r.fixed} TRACK${r.fixed !== 1 ? 'S' : ''} FIXED`;
+      let msg = `${r.fixed} TRACK${r.fixed !== 1 ? 'S' : ''} FIXED`;
+      if (r.skipped) msg += ` · ${r.skipped} SKIPPED (file not found)`;
+      document.getElementById('fn-count-label').textContent = msg;
     }
   } catch (e) { /* ignore */ }
   btn.textContent = '⚡ FIX ALL'; btn.disabled = false;

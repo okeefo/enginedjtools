@@ -12,12 +12,15 @@ from pathlib import Path
 from enginedjtools.db.queries import integrity_check
 from enginedjtools.scanner import EngineLibrary
 
-# Characters that are illegal in Windows filenames
-_WINDOWS_ILLEGAL = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
-# Newline variants — Keith's suspected cause
+# Newline variants — primary cause of Engine DJ backup failure
 _NEWLINES = re.compile(r'[\r\n]')
-# Non-ASCII (accented chars etc.)
-_NON_ASCII = re.compile(r'[^\x00-\x7f]')
+
+# Characters that are truly illegal in Windows filename *components* but that
+# also appear legitimately in full paths (: in drive letter, / and \ as
+# separators, spaces, etc.).  We check each path component individually so
+# we don't false-positive on "H:\Music\Artist.mp3".
+# Illegal in a filename component: < > " | ? *  plus control chars except \t
+_COMPONENT_ILLEGAL = re.compile(r'[<>"|?*\x00-\x08\x0b-\x0c\x0e-\x1f]')
 
 
 @dataclass
@@ -71,6 +74,32 @@ def _db_size_mb(lib: EngineLibrary) -> float:
     return total / (1024 ** 2)
 
 
+def _describe_chars(s: str, pattern: re.Pattern) -> str:
+    """Return a short description of matched characters for display."""
+    chars = sorted(set(pattern.findall(s)))
+    return ", ".join(repr(c) for c in chars[:5])
+
+
+def _check_path_components(full_path: str) -> list[str]:
+    """Check each filename component of a path for truly-illegal characters.
+
+    Splits on both / and \\ so drive letters and separators are not flagged.
+    """
+    bad: list[str] = []
+    # Normalise separators and split into components
+    components = re.split(r'[\\/]', full_path)
+    for part in components:
+        # Skip drive-letter token ("H:", "C:", "") — colon is valid there
+        if re.fullmatch(r'[A-Za-z]:', part) or part == "":
+            continue
+        m = _COMPONENT_ILLEGAL.search(part)
+        if m:
+            chars = _describe_chars(part, _COMPONENT_ILLEGAL)
+            bad.append(f"illegal char in filename component ({chars})")
+            break
+    return bad
+
+
 def _scan_tracks(m_db: Path) -> list[TrackIssue]:
     issues: list[TrackIssue] = []
     try:
@@ -78,20 +107,29 @@ def _scan_tracks(m_db: Path) -> list[TrackIssue]:
             conn.row_factory = sqlite3.Row
             for row in conn.execute("SELECT id, path, filename FROM Track"):
                 track_id = row["id"]
-                path = row["path"] or ""
+                path     = row["path"]     or ""
                 filename = row["filename"] or ""
                 combined = path + filename
                 found: list[str] = []
 
                 if _NEWLINES.search(combined):
-                    found.append("contains newline/carriage-return character")
-                if _WINDOWS_ILLEGAL.search(combined):
-                    found.append("contains Windows-illegal character")
-                if _NON_ASCII.search(combined):
-                    found.append("contains non-ASCII / accented character")
+                    found.append("newline/carriage-return in stored path")
+
+                found.extend(_check_path_components(path))
+                if filename:
+                    m = _COMPONENT_ILLEGAL.search(filename)
+                    if m:
+                        chars = _describe_chars(filename, _COMPONENT_ILLEGAL)
+                        found.append(f"illegal char in filename ({chars})")
+
+                # Non-ASCII (é, ñ, etc.) is valid on NTFS — not flagged
 
                 if found:
-                    issues.append(TrackIssue(track_id=track_id, path=path or filename, issues=found))
+                    issues.append(TrackIssue(
+                        track_id=track_id,
+                        path=path or filename,
+                        issues=found,
+                    ))
     except sqlite3.Error:
         pass
     return issues

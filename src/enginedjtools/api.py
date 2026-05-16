@@ -132,9 +132,17 @@ class Api:
     def _fix_tracks(self, track_ids: list[int]) -> dict[str, Any]:
         if not self._library:
             return {"ok": False, "error": "No library selected"}
-        _STRIP = re.compile(r"[\r\n]")
+
+        # Strip newlines and carriage-returns — the primary Engine DJ backup killer.
+        # These cannot exist in real Windows filenames so the cleaned path IS the
+        # real file path; no rename needed.
+        _STRIP_NEWLINES = re.compile(r"[\r\n]")
+        # Characters illegal in Windows filename *components* (not separators).
+        _STRIP_ILLEGAL  = re.compile(r'[<>"|?*\x00-\x08\x0b-\x0c\x0e-\x1f]')
+
         fixed = 0
-        errors: list[str] = []
+        skipped_missing: list[int] = []
+
         try:
             with sqlite3.connect(str(self._library.m_db)) as conn:
                 for tid in track_ids:
@@ -144,18 +152,34 @@ class Api:
                     if not row:
                         continue
                     old_path, old_name = row[0] or "", row[1] or ""
-                    new_path = _STRIP.sub("", old_path)
-                    new_name = _STRIP.sub("", old_name)
-                    if new_path != old_path or new_name != old_name:
-                        conn.execute(
-                            "UPDATE Track SET path=?, filename=? WHERE id=?",
-                            (new_path, new_name, tid),
-                        )
-                        fixed += 1
+
+                    new_path = _STRIP_ILLEGAL.sub("", _STRIP_NEWLINES.sub("", old_path))
+                    new_name = _STRIP_ILLEGAL.sub("", _STRIP_NEWLINES.sub("", old_name))
+
+                    if new_path == old_path and new_name == old_name:
+                        continue  # nothing to fix
+
+                    # Safety check: verify the cleaned path actually points to a real file.
+                    # If it doesn't, leave the DB untouched — a broken reference is better
+                    # than a silently wrong one.
+                    if new_path and not Path(new_path).exists():
+                        skipped_missing.append(tid)
+                        continue
+
+                    conn.execute(
+                        "UPDATE Track SET path=?, filename=? WHERE id=?",
+                        (new_path, new_name, tid),
+                    )
+                    fixed += 1
                 conn.commit()
         except sqlite3.Error as e:
             return {"ok": False, "error": str(e)}
-        return {"ok": True, "fixed": fixed}
+
+        result: dict[str, Any] = {"ok": True, "fixed": fixed}
+        if skipped_missing:
+            result["skipped"] = len(skipped_missing)
+            result["skipped_ids"] = skipped_missing[:20]
+        return result
 
     # ── Theme ─────────────────────────────────────────────────────────────────
 
