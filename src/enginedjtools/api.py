@@ -249,6 +249,48 @@ class Api:
         issues = _scan_tracks(self._library.m_db)
         return [{"track_id": t.track_id, "path": t.path, "issues": t.issues} for t in issues]
 
+    # ── Missing files ─────────────────────────────────────────────────────────────
+
+    def find_missing_files(self) -> dict[str, Any]:
+        """Check every track in the DB and return those whose file does not exist on disk."""
+        if not self._library:
+            return {"error": "No library selected"}
+        missing: list[dict[str, Any]] = []
+        total = 0
+        try:
+            with sqlite3.connect(str(self._library.m_db)) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute("SELECT id, path, filename FROM Track").fetchall()
+            total = len(rows)
+            for row in rows:
+                track_id = row["id"]
+                path     = row["path"]     or ""
+                filename = row["filename"] or ""
+                if not path:
+                    missing.append({"track_id": track_id, "path": "(no path stored)", "filename": filename})
+                    continue
+                if not Path(path).exists():
+                    missing.append({"track_id": track_id, "path": path, "filename": filename})
+        except sqlite3.Error as e:
+            return {"error": str(e)}
+        return {"total": total, "missing": missing}
+
+    def remove_track_from_db(self, track_id: int) -> dict[str, Any]:
+        """Remove a single track record from m.db.
+
+        WARNING: This only removes the Track row.  Engine DJ will clean up
+        orphaned playlist/crate references the next time it opens the library.
+        """
+        if not self._library:
+            return {"ok": False, "error": "No library selected"}
+        try:
+            with sqlite3.connect(str(self._library.m_db)) as conn:
+                conn.execute("DELETE FROM Track WHERE id=?", (track_id,))
+                conn.commit()
+            return {"ok": True}
+        except sqlite3.Error as e:
+            return {"ok": False, "error": str(e)}
+
     # ── Library stats ─────────────────────────────────────────────────────────────
 
     def get_library_stats(self) -> dict[str, Any]:

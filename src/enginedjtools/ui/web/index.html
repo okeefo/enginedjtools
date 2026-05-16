@@ -512,6 +512,10 @@
         <span class="nav-icon">⚠</span>
         <span class="nav-label">Bad Filenames</span>
       </div>
+      <div class="nav-item" data-panel="missing">
+        <span class="nav-icon">⊘</span>
+        <span class="nav-label">Missing Files</span>
+      </div>
       <div class="nav-item" data-panel="manual">
         <span class="nav-icon">◉</span>
         <span class="nav-label">Manual Backup</span>
@@ -717,6 +721,49 @@
       </div>
     </div>
 
+    <!-- ════ PANEL: MISSING FILES ════ -->
+    <div class="panel" id="panel-missing">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Missing Files</div>
+          <div class="section-line"></div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--red)" id="miss-count-label"></div>
+        </div>
+
+        <div class="alert alert-warn" style="margin-bottom:16px">
+          <span class="alert-icon">⚠</span>
+          <div>Scans every track in the database and checks the file actually exists on disk.
+          Missing tracks can be safely removed from the library — Engine DJ will clean up
+          playlist references next time it opens.
+          <strong style="color:var(--yellow)">Close Engine DJ before removing tracks.</strong></div>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn btn-primary" id="miss-scan-btn" onclick="missScan()">▶ SCAN LIBRARY</button>
+          <button class="btn btn-secondary" id="miss-remove-all-btn" onclick="missRemoveAll()" style="display:none;color:var(--red);border-color:rgba(255,34,68,0.3)">⊘ REMOVE ALL MISSING</button>
+          <div class="toolbar-spacer"></div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted)" id="miss-status"></div>
+        </div>
+
+        <div id="miss-table-wrap" class="card-wide" style="display:none">
+          <table class="data-table">
+            <thead><tr><th>FILE PATH</th><th>FILENAME</th><th style="text-align:right">ACTION</th></tr></thead>
+            <tbody id="miss-tbody"></tbody>
+          </table>
+        </div>
+
+        <div id="miss-clean" class="card-wide empty-state" style="display:none">
+          <div class="empty-state-icon">✓</div>
+          <div class="empty-state-msg ok">ALL TRACKS FOUND ON DISK</div>
+        </div>
+
+        <div id="miss-idle" class="card-wide empty-state">
+          <div class="empty-state-icon" style="font-size:28px;color:var(--dim)">⊘</div>
+          <div class="empty-state-msg cyan">CLICK SCAN TO CHECK FILE INTEGRITY</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ════ PANEL: MANUAL BACKUP ════ -->
     <div class="panel" id="panel-manual">
       <div class="stagger">
@@ -879,13 +926,15 @@ let phase = 0;
 
 /* ═══════════════════════════════════ NAV ══ */
 const panelMap = {
-  backup: 'panel-backup', filenames: 'panel-filenames',
-  manual: 'panel-manual', stats: 'panel-stats',
-  browser: 'panel-browser', settings: 'panel-settings',
+  backup:   'panel-backup',   filenames: 'panel-filenames',
+  missing:  'panel-missing',  manual:    'panel-manual',
+  stats:    'panel-stats',    browser:   'panel-browser',
+  settings: 'panel-settings',
 };
 const topbarTitles = {
   backup:    'BACKUP <span>DEBUGGER</span>',
   filenames: 'BAD <span style="color:var(--yellow)">FILENAMES</span>',
+  missing:   'MISSING <span style="color:var(--red)">FILES</span>',
   manual:    'MANUAL <span style="color:var(--green)">BACKUP</span>',
   stats:     'LIBRARY <span style="color:var(--pink)">STATS</span>',
   browser:   'DATABASE <span style="color:var(--cyan)">BROWSER</span>',
@@ -1388,6 +1437,98 @@ async function fnFixAll() {
     }
   } catch (e) { /* ignore */ }
   btn.textContent = '⚡ FIX ALL'; btn.disabled = false;
+}
+
+/* ══════════════════════════════════ MISSING FILES ══ */
+async function missScan() {
+  const btn    = document.getElementById('miss-scan-btn');
+  const status = document.getElementById('miss-status');
+  btn.textContent = '⟳ SCANNING…'; btn.disabled = true;
+  status.textContent = '';
+  document.getElementById('miss-count-label').textContent = '';
+  document.getElementById('miss-idle').style.display        = 'none';
+  document.getElementById('miss-clean').style.display       = 'none';
+  document.getElementById('miss-table-wrap').style.display  = 'none';
+  document.getElementById('miss-remove-all-btn').style.display = 'none';
+
+  try {
+    const r = await pywebview.api.find_missing_files();
+    if (r.error) { status.textContent = 'ERROR: ' + r.error; return; }
+
+    const { total, missing } = r;
+    status.textContent = `CHECKED ${total} TRACKS`;
+
+    if (missing.length === 0) {
+      document.getElementById('miss-clean').style.display = 'block';
+    } else {
+      document.getElementById('miss-count-label').textContent =
+        `${missing.length} MISSING OF ${total}`;
+      document.getElementById('miss-remove-all-btn').style.display = 'inline-flex';
+      missRenderTable(missing);
+      document.getElementById('miss-table-wrap').style.display = 'block';
+    }
+  } catch (e) {
+    status.textContent = 'ERROR: ' + e;
+    document.getElementById('miss-idle').style.display = 'block';
+  }
+  btn.textContent = '▶ SCAN LIBRARY'; btn.disabled = false;
+}
+
+function missRenderTable(missing) {
+  const tbody = document.getElementById('miss-tbody');
+  tbody.innerHTML = '';
+  missing.forEach(t => {
+    const tr = document.createElement('tr');
+    tr.id = 'miss-row-' + t.track_id;
+    tr.innerHTML = `
+      <td class="path-cell" style="max-width:440px" title="${escHtml(t.path)}">${escHtml(t.path)}</td>
+      <td style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">${escHtml(t.filename)}</td>
+      <td style="text-align:right">
+        <button class="btn btn-secondary" style="font-size:9px;padding:4px 10px;color:var(--red);border-color:rgba(255,34,68,0.3)"
+                onclick="missRemoveOne(${t.track_id}, this)">REMOVE</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function missRemoveOne(trackId, btn) {
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const r = await pywebview.api.remove_track_from_db(trackId);
+    if (r.ok) {
+      const row = document.getElementById('miss-row-' + trackId);
+      row.style.transition = 'opacity 0.3s';
+      row.style.opacity = '0';
+      setTimeout(() => row.remove(), 300);
+      const lbl = document.getElementById('miss-count-label');
+      const m = lbl.textContent.match(/^(\d+)/);
+      if (m) lbl.textContent = lbl.textContent.replace(/^\d+/, String(parseInt(m[1]) - 1));
+    } else {
+      btn.textContent = 'ERR'; btn.title = r.error || '';
+    }
+  } catch (e) { btn.textContent = 'ERR'; }
+}
+
+async function missRemoveAll() {
+  const btn = document.getElementById('miss-remove-all-btn');
+  const rows = document.querySelectorAll('#miss-tbody tr');
+  if (!rows.length) return;
+  btn.textContent = `⟳ REMOVING ${rows.length}…`; btn.disabled = true;
+  let removed = 0;
+  for (const row of rows) {
+    const tid = parseInt(row.id.replace('miss-row-', ''));
+    try {
+      const r = await pywebview.api.remove_track_from_db(tid);
+      if (r.ok) { row.remove(); removed++; }
+    } catch (_) {}
+  }
+  document.getElementById('miss-count-label').textContent =
+    removed > 0 ? `${removed} TRACKS REMOVED` : 'NOTHING REMOVED';
+  if (!document.querySelector('#miss-tbody tr')) {
+    document.getElementById('miss-table-wrap').style.display = 'none';
+    document.getElementById('miss-clean').style.display = 'block';
+  }
+  btn.textContent = '⊘ REMOVE ALL MISSING'; btn.disabled = false;
 }
 
 /* ══════════════════════════════════ LIBRARY STATS ══ */
