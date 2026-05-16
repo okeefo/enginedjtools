@@ -149,7 +149,7 @@ class ThemeManager(QObject):
 
 # ── QSS template ──────────────────────────────────────────────────────────────
 
-def _build_qss(t: Theme) -> str:  # noqa: PLR0915 (long but intentional)
+def _build_qss(t: Theme) -> str:
     return f"""
 /* === BASE === */
 QWidget {{
@@ -167,42 +167,140 @@ QMainWindow, QDialog {{
 /* === TOPBAR === */
 QFrame#topbar {{
     background-color: {t.c("topbar_bg")};
-    border-bottom: 1px solid {t.c("border")};
+    border-bottom: 1px solid rgba(0,245,255,0.12);
     min-height: {t.sp("topbar_height")}px;
     max-height: {t.sp("topbar_height")}px;
+}}
+QLabel#topbar_panel_title {{
+    font-family: "{t.f("display")}", "{t.f("display_fallback")}";
+    font-size: {t.s("font_heading")}pt;
+    font-weight: bold;
+    color: {t.c("text_primary")};
+    letter-spacing: 2px;
 }}
 
 /* === SIDEBAR === */
 QFrame#sidebar {{
     background-color: {t.c("sidebar_bg")};
-    border-right: 1px solid {t.c("border")};
+    border-right: 1px solid rgba(0,245,255,0.12);
     min-width: {t.sp("sidebar_width")}px;
     max-width: {t.sp("sidebar_width")}px;
 }}
 
-/* === NAV BUTTONS === */
-QPushButton#nav_button {{
+/* ── Logo section ── */
+QFrame#logo_wrap {{
     background-color: transparent;
+    border-bottom: 1px solid rgba(0,245,255,0.10);
+}}
+QLabel#logo_eyebrow {{
+    font-family: "{t.f("mono")}", "{t.f("mono_fallback")}";
+    font-size: 8pt;
+    letter-spacing: 3px;
+    color: {t.c("accent_magenta")};
+    background: transparent;
+}}
+QLabel#logo_text {{
+    font-family: "{t.f("display")}", "{t.f("display_fallback")}";
+    font-size: 15pt;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: {t.c("accent_cyan")};
+    line-height: 1.2;
+    background: transparent;
+}}
+QLabel#logo_sub {{
+    font-family: "{t.f("mono")}", "{t.f("mono_fallback")}";
+    font-size: 8pt;
+    letter-spacing: 2px;
     color: {t.c("text_secondary")};
+    background: transparent;
+}}
+
+/* ── Active DB pill ── */
+QFrame#db_pill {{
+    background-color: rgba(238,255,0,0.05);
+    border: 1px solid rgba(238,255,0,0.22);
+    border-radius: {t.sp("border_radius")}px;
+}}
+QLabel#db_pill_label {{
+    font-family: "{t.f("mono")}", "{t.f("mono_fallback")}";
+    font-size: 8pt;
+    letter-spacing: 3px;
+    color: {t.c("accent_yellow")};
+    background: transparent;
+}}
+QLabel#db_pill_path {{
+    font-family: "{t.f("mono")}", "{t.f("mono_fallback")}";
+    font-size: 8pt;
+    color: {t.c("text_primary")};
+    background: transparent;
+}}
+QLabel#db_pill_tracks {{
+    font-family: "{t.f("mono")}", "{t.f("mono_fallback")}";
+    font-size: 8pt;
+    color: {t.c("text_secondary")};
+    background: transparent;
+}}
+
+/* ── Nav section label ── */
+QLabel#nav_section_label {{
+    font-family: "{t.f("mono")}", "{t.f("mono_fallback")}";
+    font-size: 8pt;
+    letter-spacing: 3px;
+    color: {t.c("text_disabled")};
+    background: transparent;
+}}
+
+/* ── Nav items ── */
+QWidget#nav_item {{
+    background-color: transparent;
+}}
+QWidget#nav_item:hover {{
+    background-color: rgba(0,245,255,0.05);
+}}
+QWidget#nav_item[active="true"] {{
+    background-color: rgba(0,245,255,0.08);
+}}
+QFrame#nav_indicator {{
+    background-color: transparent;
+    border: none;
+}}
+QFrame#nav_indicator[active="true"] {{
+    background-color: {t.c("sidebar_active_border")};
+}}
+QLabel#nav_icon {{
+    font-size: 13pt;
+    color: {t.c("text_secondary")};
+    background: transparent;
+}}
+QLabel#nav_icon[active="true"] {{
+    color: {t.c("accent_cyan")};
+}}
+QLabel#nav_label {{
     font-family: "{t.f("body")}", "{t.f("body_fallback")}";
     font-size: {t.s("font_nav")}pt;
-    font-weight: bold;
-    text-align: left;
-    padding: {t.sp("padding_sm")}px {t.sp("padding_md")}px;
-    border: none;
-    border-left: 3px solid transparent;
-    border-radius: 0px;
-    letter-spacing: 1px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: {t.c("text_secondary")};
+    background: transparent;
 }}
-QPushButton#nav_button:hover {{
-    background-color: {t.c("bg_surface")};
-    color: {t.c("text_primary")};
-    border-left: 3px solid {t.c("border")};
-}}
-QPushButton#nav_button[active="true"] {{
-    background-color: {t.c("sidebar_active_bg")};
+QLabel#nav_label[active="true"] {{
     color: {t.c("accent_cyan")};
-    border-left: 3px solid {t.c("sidebar_active_border")};
+}}
+
+/* ── Sidebar separator / footer ── */
+QFrame#sidebar_sep {{
+    background-color: rgba(0,245,255,0.08);
+    max-height: 1px;
+    min-height: 1px;
+    border: none;
+}}
+QLabel#sidebar_footer {{
+    font-family: "{t.f("mono")}", "{t.f("mono_fallback")}";
+    font-size: 8pt;
+    letter-spacing: 1px;
+    color: {t.c("text_disabled")};
+    background: transparent;
 }}
 
 /* === PANEL AREA === */
@@ -223,18 +321,6 @@ QLabel {{
     color: {t.c("text_primary")};
     font-size: {t.s("font_body")}pt;
 }}
-QLabel#app_title {{
-    font-family: "{t.f("display")}", "{t.f("display_fallback")}";
-    font-size: {t.s("font_heading")}pt;
-    font-weight: bold;
-    color: {t.c("accent_cyan")};
-    letter-spacing: 3px;
-}}
-QLabel#db_info {{
-    font-family: "{t.f("mono")}", "{t.f("mono_fallback")}";
-    font-size: {t.s("font_small")}pt;
-    color: {t.c("text_secondary")};
-}}
 QLabel#panel_title {{
     font-family: "{t.f("display")}", "{t.f("display_fallback")}";
     font-size: {t.s("font_title")}pt;
@@ -249,7 +335,7 @@ QLabel#section_heading {{
     color: {t.c("text_secondary")};
     letter-spacing: 2px;
 }}
-QLabel#label_ok   {{ color: {t.c("success")}; font-family: "{t.f("mono")}", "{t.f("mono_fallback")}"; }}
+QLabel#label_ok    {{ color: {t.c("success")}; font-family: "{t.f("mono")}", "{t.f("mono_fallback")}"; }}
 QLabel#label_error {{ color: {t.c("error")};   font-family: "{t.f("mono")}", "{t.f("mono_fallback")}"; }}
 QLabel#label_warn  {{ color: {t.c("warning")}; font-family: "{t.f("mono")}", "{t.f("mono_fallback")}"; }}
 QLabel#label_mono  {{ font-family: "{t.f("mono")}", "{t.f("mono_fallback")}"; font-size: {t.s("font_mono")}pt; }}
@@ -270,9 +356,7 @@ QPushButton:hover {{
     background-color: {t.c("button_hover_bg")};
     border-color: {t.c("text_secondary")};
 }}
-QPushButton:pressed {{
-    background-color: {t.c("bg_elevated")};
-}}
+QPushButton:pressed {{ background-color: {t.c("bg_elevated")}; }}
 QPushButton:disabled {{
     color: {t.c("text_disabled")};
     border-color: {t.c("border")};
@@ -283,25 +367,11 @@ QPushButton#primary_button {{
     color: {t.c("button_primary_text")};
     border-color: {t.c("button_primary_bg")};
 }}
-QPushButton#primary_button:hover {{
-    background-color: {t.c("accent_cyan")};
-}}
-QPushButton#danger_button {{
-    border-color: {t.c("error")};
-    color: {t.c("error")};
-}}
-QPushButton#danger_button:hover {{
-    background-color: {t.c("error")};
-    color: {t.c("bg_primary")};
-}}
-QPushButton#warning_button {{
-    border-color: {t.c("warning")};
-    color: {t.c("warning")};
-}}
-QPushButton#warning_button:hover {{
-    background-color: {t.c("warning")};
-    color: {t.c("bg_primary")};
-}}
+QPushButton#primary_button:hover {{ background-color: {t.c("accent_cyan")}; }}
+QPushButton#danger_button  {{ border-color: {t.c("error")};   color: {t.c("error")}; }}
+QPushButton#danger_button:hover  {{ background-color: {t.c("error")};   color: {t.c("bg_primary")}; }}
+QPushButton#warning_button {{ border-color: {t.c("warning")}; color: {t.c("warning")}; }}
+QPushButton#warning_button:hover {{ background-color: {t.c("warning")}; color: {t.c("bg_primary")}; }}
 
 /* === FRAMES / CARDS === */
 QFrame#card {{
@@ -312,11 +382,6 @@ QFrame#card {{
 QFrame#alert_error {{
     background-color: #1a0510;
     border: 1px solid {t.c("error")};
-    border-radius: {t.sp("border_radius")}px;
-}}
-QFrame#alert_warn {{
-    background-color: #1a1100;
-    border: 1px solid {t.c("warning")};
     border-radius: {t.sp("border_radius")}px;
 }}
 QFrame#separator {{
