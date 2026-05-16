@@ -247,6 +247,7 @@
     }
     .alert-error { background: rgba(255,34,68,0.08);  border: 1px solid rgba(255,34,68,0.3); }
     .alert-warn  { background: rgba(238,255,0,0.05);  border: 1px solid rgba(238,255,0,0.25); }
+    .alert-ok    { background: rgba(0,255,136,0.06);  border: 1px solid rgba(0,255,136,0.3); }
     .alert-icon  { font-size: 18px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
 
     /* ── Toolbar ── */
@@ -343,6 +344,90 @@
     ::-webkit-scrollbar-track { background: var(--bg-0); }
     ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* ── Stat cards ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: var(--bg-2); border: 1px solid rgba(0,245,255,0.10); border-radius: 4px; padding: 18px 20px; }
+    .stat-card-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 3px; color: var(--muted); margin-bottom: 8px; }
+    .stat-card-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--cyan); line-height: 1; }
+    .stat-card-value.pink   { color: var(--pink); }
+    .stat-card-value.yellow { color: var(--yellow); }
+    .stat-card-value.green  { color: var(--green); }
+    .stat-card-value.muted  { color: var(--muted); font-size: 16px; }
+
+    /* ── Backup item ── */
+    .backup-entry {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-mono); font-size: 10px;
+      padding: 8px 0; border-bottom: 1px solid rgba(0,245,255,0.06);
+    }
+    .backup-entry-icon { color: var(--cyan); font-size: 12px; }
+    .backup-entry-name { flex:1; color: var(--text); }
+    .backup-entry-size { color: var(--muted); }
+
+    /* ── Theme manager ── */
+    .theme-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+    .theme-select {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px;
+      background: var(--bg-2); color: var(--text);
+      border: 1px solid rgba(0,245,255,0.20); border-radius: 3px;
+      padding: 6px 10px; outline: none; cursor: pointer; min-width: 180px;
+    }
+    .theme-select:focus { border-color: var(--cyan); }
+    .badge-readonly {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px;
+      color: var(--muted); border: 1px solid var(--dim); padding: 4px 8px; border-radius: 2px;
+    }
+    .theme-save-name-row { display:none; align-items:center; gap:8px; margin-bottom:16px; }
+    .theme-save-name-row.visible { display:flex; }
+    .theme-name-input {
+      font-family: var(--font-mono); font-size: 11px;
+      background: var(--bg-2); color: var(--text);
+      border: 1px solid rgba(0,245,255,0.3); border-radius: 3px;
+      padding: 6px 10px; outline: none; flex: 1; max-width: 280px;
+    }
+    .theme-name-input:focus { border-color: var(--cyan); }
+
+    /* Color grid */
+    .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+    .color-item { display:flex; align-items:center; gap:8px; }
+    input[type="color"].color-swatch {
+      width: 30px; height: 30px; border: 1px solid var(--dim); border-radius: 3px;
+      cursor: pointer; padding: 1px; background: none; flex-shrink: 0;
+    }
+    input[type="color"].color-swatch:hover { border-color: var(--cyan); }
+    .color-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+
+    /* Font grid */
+    .font-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .font-item { display:flex; flex-direction:column; gap:4px; }
+    .font-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px; color: var(--muted); }
+    .font-input {
+      font-family: var(--font-mono); font-size: 11px;
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid rgba(0,245,255,0.15); border-radius: 3px;
+      padding: 6px 10px; outline: none;
+    }
+    .font-input:focus { border-color: var(--cyan); }
+
+    /* Size grid */
+    .size-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .size-item { display:flex; flex-direction:column; gap:4px; }
+    .size-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+    .size-input {
+      font-family: var(--font-mono); font-size: 12px; width: 80px;
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid rgba(0,245,255,0.15); border-radius: 3px;
+      padding: 5px 8px; outline: none;
+    }
+    .size-input:focus { border-color: var(--cyan); }
+
+    /* No-issues / empty state */
+    .empty-state { padding: 60px; text-align: center; color: var(--muted); }
+    .empty-state-icon { font-size: 36px; margin-bottom: 16px; }
+    .empty-state-msg { font-family: var(--font-display); font-size: 11px; letter-spacing: 3px; }
+    .empty-state-msg.ok { color: var(--green); }
+    .empty-state-msg.cyan { color: var(--cyan); }
 
     /* ── Stagger animation ── */
     .stagger > * { animation: fadeUp 0.3s both; }
@@ -566,9 +651,37 @@
         <div class="section-header">
           <div class="section-title">Bad Filename Scanner</div>
           <div class="section-line"></div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--red)" id="fn-count-label"></div>
         </div>
-        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
-          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon — run Backup Debugger for filename issues</div>
+
+        <div class="toolbar">
+          <button class="btn btn-primary" id="fn-scan-btn" onclick="fnScan()">▶ SCAN TRACKS</button>
+          <button class="btn btn-secondary" id="fn-fix-all-btn" onclick="fnFixAll()" style="display:none">⚡ FIX ALL</button>
+          <div class="toolbar-spacer"></div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted)" id="fn-status"></div>
+        </div>
+
+        <div id="fn-warn" class="alert alert-warn" style="display:none;margin-bottom:16px">
+          <span class="alert-icon">⚠</span>
+          <div>Newline and illegal characters in track paths are the most common cause of Engine DJ backup failure.
+          <strong style="color:var(--yellow)">Close Engine DJ before fixing.</strong></div>
+        </div>
+
+        <div id="fn-table-wrap" class="card-wide" style="display:none">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>FILE PATH</th><th>ISSUES</th><th style="text-align:right">ACTION</th></tr></thead>
+            <tbody id="fn-tbody"></tbody>
+          </table>
+        </div>
+
+        <div id="fn-clean" class="card-wide empty-state" style="display:none">
+          <div class="empty-state-icon">✓</div>
+          <div class="empty-state-msg ok">ALL TRACK PATHS ARE CLEAN</div>
+        </div>
+
+        <div id="fn-idle" class="card-wide empty-state">
+          <div class="empty-state-icon" style="font-size:28px;color:var(--dim)">⌕</div>
+          <div class="empty-state-msg cyan">CLICK SCAN TO ANALYSE TRACK PATHS</div>
         </div>
       </div>
     </div>
@@ -580,9 +693,28 @@
           <div class="section-title">Manual Backup</div>
           <div class="section-line"></div>
         </div>
-        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
-          <div style="font-size:36px;margin-bottom:16px">💾</div>
-          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon</div>
+
+        <div class="alert alert-warn" style="margin-bottom:20px">
+          <span class="alert-icon">⚠</span>
+          <div>Close Engine DJ before running a backup to ensure all data is flushed to disk.</div>
+        </div>
+
+        <div class="toolbar" style="margin-bottom:20px">
+          <button class="btn btn-primary" id="mb-run-btn" onclick="mbRun()">▶ RUN BACKUP NOW</button>
+          <div class="toolbar-spacer"></div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted)" id="mb-status"></div>
+        </div>
+
+        <div id="mb-result" style="display:none;margin-bottom:20px"></div>
+
+        <div class="section-header">
+          <div class="section-title">Existing Backups</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" id="mb-backup-list-wrap">
+          <div class="empty-state" style="padding:30px">
+            <div class="empty-state-msg">LOADING…</div>
+          </div>
         </div>
       </div>
     </div>
@@ -594,8 +726,22 @@
           <div class="section-title">Library Statistics</div>
           <div class="section-line"></div>
         </div>
-        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
-          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon</div>
+
+        <div class="stat-grid" id="stats-grid">
+          <div class="card-wide empty-state" style="grid-column:1/-1;padding:30px">
+            <div class="empty-state-msg">LOADING…</div>
+          </div>
+        </div>
+
+        <div class="section-header" style="margin-top:8px">
+          <div class="section-title">Coverage</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" id="stats-coverage" style="display:none">
+          <table class="data-table">
+            <thead><tr><th>METRIC</th><th>COUNT</th><th>COVERAGE</th></tr></thead>
+            <tbody id="stats-coverage-tbody"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -607,8 +753,9 @@
           <div class="section-title">Database Browser</div>
           <div class="section-line"></div>
         </div>
-        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
-          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon</div>
+        <div class="card-wide empty-state">
+          <div class="empty-state-icon" style="color:var(--dim)">🗄</div>
+          <div class="empty-state-msg" style="color:var(--dim)">COMING SOON</div>
         </div>
       </div>
     </div>
@@ -617,11 +764,49 @@
     <div class="panel" id="panel-settings">
       <div class="stagger">
         <div class="section-header">
-          <div class="section-title">Settings</div>
+          <div class="section-title">Theme Manager</div>
           <div class="section-line"></div>
         </div>
-        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
-          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon</div>
+
+        <div class="theme-toolbar">
+          <select class="theme-select" id="theme-select" onchange="themeLoad(this.value)"></select>
+          <button class="btn btn-secondary" onclick="themeReload()">↺ RELOAD</button>
+          <div class="toolbar-spacer"></div>
+          <span class="badge-readonly" id="theme-readonly-badge" style="display:none">READ-ONLY</span>
+          <button class="btn btn-secondary" id="theme-save-btn" onclick="themeSave()" style="display:none">SAVE</button>
+          <button class="btn btn-secondary" onclick="themeSaveAs()">SAVE AS…</button>
+          <button class="btn btn-secondary" id="theme-delete-btn" onclick="themeDelete()" style="display:none;color:var(--red);border-color:rgba(255,34,68,0.3)">DELETE</button>
+        </div>
+
+        <!-- inline save-as name form -->
+        <div class="theme-save-name-row" id="theme-save-name-row">
+          <input class="theme-name-input" id="theme-save-name" placeholder="Enter theme name…" maxlength="50">
+          <button class="btn btn-primary" onclick="themeConfirmSaveAs()">SAVE</button>
+          <button class="btn btn-secondary" onclick="themeCancelSaveAs()">CANCEL</button>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Colors</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" style="margin-bottom:16px">
+          <div class="color-grid" id="theme-color-grid"></div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Fonts</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" style="margin-bottom:16px">
+          <div class="font-grid" id="theme-font-grid"></div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Sizes &amp; Spacing</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide">
+          <div class="size-grid" id="theme-size-grid"></div>
         </div>
       </div>
     </div>
@@ -676,6 +861,8 @@ const topbarTitles = {
   settings:  'APP <span style="color:var(--muted)">SETTINGS</span>',
 };
 
+const panelLoaded = {};
+
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     const key = item.dataset.panel;
@@ -684,6 +871,12 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.getElementById(panelMap[key]).classList.add('active');
     document.getElementById('topbar-title').innerHTML = topbarTitles[key];
+    if (!panelLoaded[key]) {
+      panelLoaded[key] = true;
+      if (key === 'stats')    loadStats();
+      if (key === 'manual')   loadManualBackup();
+      if (key === 'settings') loadThemeManager();
+    }
   });
 });
 
@@ -1004,6 +1197,294 @@ function resetDiagnostics() {
 /* ═══════════════════════════════════ UTILS ══ */
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ══════════════════════════════════ BAD FILENAMES ══ */
+async function fnScan() {
+  const btn = document.getElementById('fn-scan-btn');
+  btn.textContent = '⟳ SCANNING…'; btn.disabled = true;
+  document.getElementById('fn-status').textContent = '';
+  document.getElementById('fn-count-label').textContent = '';
+  document.getElementById('fn-idle').style.display = 'none';
+  document.getElementById('fn-clean').style.display = 'none';
+  document.getElementById('fn-table-wrap').style.display = 'none';
+  document.getElementById('fn-warn').style.display = 'none';
+  document.getElementById('fn-fix-all-btn').style.display = 'none';
+
+  try {
+    const issues = await pywebview.api.get_track_issues();
+    if (issues.length === 0) {
+      document.getElementById('fn-clean').style.display = 'block';
+      document.getElementById('fn-status').textContent = 'SCAN COMPLETE — NO ISSUES';
+    } else {
+      document.getElementById('fn-count-label').textContent = `${issues.length} ISSUE${issues.length !== 1 ? 'S' : ''} FOUND`;
+      document.getElementById('fn-warn').style.display = 'flex';
+      document.getElementById('fn-fix-all-btn').style.display = 'inline-flex';
+      fnRenderTable(issues);
+      document.getElementById('fn-table-wrap').style.display = 'block';
+    }
+  } catch (e) {
+    document.getElementById('fn-status').textContent = 'ERROR: ' + e;
+    document.getElementById('fn-idle').style.display = 'block';
+  }
+  btn.textContent = '▶ SCAN TRACKS'; btn.disabled = false;
+}
+
+function fnRenderTable(issues) {
+  const tbody = document.getElementById('fn-tbody');
+  tbody.innerHTML = '';
+  issues.forEach(t => {
+    const tags = t.issues.map(iss => {
+      if (iss.includes('newline'))  return '<span class="issue-tag newline">NEWLINE</span>';
+      if (iss.includes('non-ASCII'))return '<span class="issue-tag unicode">NON-ASCII</span>';
+      return '<span class="issue-tag illegal">ILLEGAL</span>';
+    }).join('');
+    const tr = document.createElement('tr');
+    tr.id = 'fn-row-' + t.track_id;
+    tr.innerHTML = `
+      <td class="id-cell">${t.track_id}</td>
+      <td class="path-cell" title="${escHtml(t.path)}">${escHtml(t.path)}</td>
+      <td>${tags}</td>
+      <td style="text-align:right">
+        <button class="btn btn-secondary" style="font-size:9px;padding:4px 10px"
+                onclick="fnFix(${t.track_id}, this)">FIX</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function fnFix(trackId, btn) {
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const r = await pywebview.api.fix_track(trackId);
+    if (r.ok) document.getElementById('fn-row-' + trackId).classList.add('fixed');
+    else { btn.textContent = 'ERR'; }
+  } catch (e) { btn.textContent = 'ERR'; }
+}
+
+async function fnFixAll() {
+  const btn = document.getElementById('fn-fix-all-btn');
+  btn.textContent = '⟳ FIXING…'; btn.disabled = true;
+  try {
+    const r = await pywebview.api.fix_all_tracks();
+    if (r.ok) {
+      document.querySelectorAll('#fn-tbody tr').forEach(tr => tr.classList.add('fixed'));
+      document.getElementById('fn-count-label').textContent = `${r.fixed} TRACK${r.fixed !== 1 ? 'S' : ''} FIXED`;
+    }
+  } catch (e) { /* ignore */ }
+  btn.textContent = '⚡ FIX ALL'; btn.disabled = false;
+}
+
+/* ══════════════════════════════════ LIBRARY STATS ══ */
+async function loadStats() {
+  try {
+    const s = await pywebview.api.get_library_stats();
+    if (s.error) { document.getElementById('stats-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-msg" style="color:var(--red)">${escHtml(s.error)}</div></div>`; return; }
+
+    document.getElementById('stats-grid').innerHTML = `
+      <div class="stat-card"><div class="stat-card-label">TOTAL TRACKS</div><div class="stat-card-value">${s.track_count}</div></div>
+      <div class="stat-card"><div class="stat-card-label">WITH BPM</div><div class="stat-card-value pink">${s.bpm_count}</div></div>
+      <div class="stat-card"><div class="stat-card-label">WITH YEAR</div><div class="stat-card-value yellow">${s.year_count}</div></div>
+      <div class="stat-card"><div class="stat-card-label">CRATES</div><div class="stat-card-value">${s.crate_count}</div></div>
+      <div class="stat-card"><div class="stat-card-label">PLAYLISTS</div><div class="stat-card-value">${s.playlist_count}</div></div>
+      <div class="stat-card"><div class="stat-card-label">DB SIZE</div><div class="stat-card-value green">${s.db_size_mb} <span style="font-size:14px;color:var(--muted)">MB</span></div></div>
+      <div class="stat-card"><div class="stat-card-label">SCHEMA VERSION</div><div class="stat-card-value muted">${s.schema_version || 'UNKNOWN'}</div></div>`;
+
+    const pct = t => t > 0 ? Math.round((t / s.track_count) * 100) + '%' : '—';
+    document.getElementById('stats-coverage-tbody').innerHTML = `
+      <tr><td>Tracks with BPM</td><td>${s.bpm_count} / ${s.track_count}</td><td style="color:var(--cyan)">${pct(s.bpm_count)}</td></tr>
+      <tr><td>Tracks with Year</td><td>${s.year_count} / ${s.track_count}</td><td style="color:var(--yellow)">${pct(s.year_count)}</td></tr>`;
+    document.getElementById('stats-coverage').style.display = 'block';
+  } catch (e) {
+    document.getElementById('stats-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-msg" style="color:var(--red)">ERROR: ${escHtml(String(e))}</div></div>`;
+  }
+}
+
+/* ══════════════════════════════════ MANUAL BACKUP ══ */
+async function loadManualBackup() {
+  await mbRefreshList();
+}
+
+async function mbRun() {
+  const btn = document.getElementById('mb-run-btn');
+  const status = document.getElementById('mb-status');
+  btn.textContent = '⟳ BACKING UP…'; btn.disabled = true;
+  status.textContent = 'CREATING ZIP…';
+  document.getElementById('mb-result').style.display = 'none';
+  try {
+    const r = await pywebview.api.run_backup();
+    const resultEl = document.getElementById('mb-result');
+    if (r.ok) {
+      resultEl.innerHTML = `<div class="alert alert-ok"><span class="alert-icon">✓</span>
+        <div>Backup saved: <span style="color:var(--cyan);font-family:var(--font-mono)">${escHtml(r.name)}</span>
+        &nbsp;·&nbsp; ${r.size_mb} MB</div></div>`;
+      status.textContent = 'BACKUP COMPLETE';
+    } else {
+      resultEl.innerHTML = `<div class="alert alert-error"><span class="alert-icon">⛔</span>
+        <div>Backup failed: ${escHtml(r.error)}</div></div>`;
+      status.textContent = 'BACKUP FAILED';
+    }
+    resultEl.style.display = 'block';
+    await mbRefreshList();
+  } catch (e) {
+    status.textContent = 'ERROR: ' + e;
+  }
+  btn.textContent = '▶ RUN BACKUP NOW'; btn.disabled = false;
+}
+
+async function mbRefreshList() {
+  const wrap = document.getElementById('mb-backup-list-wrap');
+  try {
+    const backups = await pywebview.api.list_backups();
+    if (backups.length === 0) {
+      wrap.innerHTML = `<div class="empty-state" style="padding:30px"><div class="empty-state-msg" style="color:var(--dim)">NO BACKUPS FOUND</div></div>`;
+    } else {
+      wrap.innerHTML = backups.map(b => `
+        <div class="backup-entry">
+          <span class="backup-entry-icon">◈</span>
+          <span class="backup-entry-name">${escHtml(b.name)}</span>
+          <span class="backup-entry-size">${b.size_mb} MB</span>
+        </div>`).join('');
+    }
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:20px"><div class="empty-state-msg" style="color:var(--red)">ERROR: ${escHtml(String(e))}</div></div>`;
+  }
+}
+
+/* ══════════════════════════════════ THEME MANAGER ══ */
+const COLOR_CSS = {
+  bg_primary:'--bg-0', bg_secondary:'--bg-1', bg_surface:'--bg-2', bg_elevated:'--bg-3',
+  accent_cyan:'--cyan', accent_magenta:'--pink', accent_yellow:'--yellow',
+  text_primary:'--text', text_secondary:'--muted', text_disabled:'--dim',
+  success:'--green', error:'--red',
+};
+const FONT_CSS = { display:'--font-display', body:'--font-body', mono:'--font-mono' };
+
+let _theme = null;
+
+async function loadThemeManager() {
+  const names = await pywebview.api.get_user_themes();
+  const sel = document.getElementById('theme-select');
+  sel.innerHTML = names.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+  await themeLoad(names[0]);
+}
+
+async function themeLoad(name) {
+  document.getElementById('theme-select').value = name;
+  const data = await pywebview.api.load_theme(name);
+  _theme = data;
+  themeRender(data);
+  themeSetReadonly(data.readonly);
+}
+
+async function themeReload() {
+  const name = document.getElementById('theme-select').value;
+  await themeLoad(name);
+}
+
+function themeRender(t) {
+  /* colors */
+  const cg = document.getElementById('theme-color-grid');
+  cg.innerHTML = '';
+  Object.entries(t.colors || {}).forEach(([key, val]) => {
+    const d = document.createElement('div');
+    d.className = 'color-item';
+    d.innerHTML = `<input type="color" class="color-swatch" id="tc-${key}" value="${val}"
+                          oninput="themeColorChange('${key}',this.value)">
+                   <div class="color-label">${key.replace(/_/g,' ').toUpperCase()}</div>`;
+    cg.appendChild(d);
+  });
+
+  /* fonts */
+  const fg = document.getElementById('theme-font-grid');
+  fg.innerHTML = '';
+  Object.entries(t.fonts || {}).filter(([k]) => FONT_CSS[k]).forEach(([key, val]) => {
+    const d = document.createElement('div');
+    d.className = 'font-item';
+    d.innerHTML = `<div class="font-label">${key.toUpperCase()} FONT</div>
+                   <input class="font-input" id="tf-${key}" value="${escHtml(val)}"
+                          oninput="themeFontChange('${key}',this.value)"
+                          style="font-family:'${escHtml(val)}',monospace">`;
+    fg.appendChild(d);
+  });
+
+  /* sizes + spacing */
+  const sg = document.getElementById('theme-size-grid');
+  sg.innerHTML = '';
+  const all = {...(t.sizes||{}), ...(t.spacing||{})};
+  Object.entries(all).forEach(([key, val]) => {
+    const d = document.createElement('div');
+    d.className = 'size-item';
+    d.innerHTML = `<div class="size-label">${key.replace(/_/g,' ').toUpperCase()}</div>
+                   <input type="number" class="size-input" id="ts-${key}" value="${val}"
+                          oninput="themeSizeChange('${key}',this.value)">`;
+    sg.appendChild(d);
+  });
+}
+
+function themeColorChange(key, val) {
+  if (_theme) _theme.colors[key] = val;
+  const cssVar = COLOR_CSS[key];
+  if (cssVar) document.documentElement.style.setProperty(cssVar, val);
+}
+
+function themeFontChange(key, val) {
+  if (_theme) _theme.fonts[key] = val;
+  const cssVar = FONT_CSS[key];
+  if (cssVar) document.documentElement.style.setProperty(cssVar, `'${val}', monospace`);
+  const inp = document.getElementById('tf-' + key);
+  if (inp) inp.style.fontFamily = `'${val}', monospace`;
+}
+
+function themeSizeChange(key, val) {
+  const n = parseInt(val, 10);
+  if (!_theme || isNaN(n)) return;
+  if (key in (_theme.sizes   || {})) _theme.sizes[key]   = n;
+  if (key in (_theme.spacing || {})) _theme.spacing[key] = n;
+}
+
+function themeSetReadonly(readonly) {
+  document.getElementById('theme-readonly-badge').style.display = readonly ? 'inline-block' : 'none';
+  document.getElementById('theme-save-btn').style.display       = readonly ? 'none' : 'inline-flex';
+  document.getElementById('theme-delete-btn').style.display     = readonly ? 'none' : 'inline-flex';
+}
+
+async function themeSave() {
+  if (!_theme || _theme.readonly) return;
+  await pywebview.api.save_theme_as(_theme.name, _theme);
+}
+
+function themeSaveAs() {
+  document.getElementById('theme-save-name').value = '';
+  document.getElementById('theme-save-name-row').classList.add('visible');
+  document.getElementById('theme-save-name').focus();
+}
+
+function themeCancelSaveAs() {
+  document.getElementById('theme-save-name-row').classList.remove('visible');
+}
+
+async function themeConfirmSaveAs() {
+  const name = document.getElementById('theme-save-name').value.trim();
+  if (!name) return;
+  const copy = JSON.parse(JSON.stringify(_theme));
+  copy.name = name; copy.readonly = false;
+  await pywebview.api.save_theme_as(name, copy);
+  themeCancelSaveAs();
+  /* refresh list and select the new theme */
+  const names = await pywebview.api.get_user_themes();
+  const sel = document.getElementById('theme-select');
+  sel.innerHTML = names.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+  await themeLoad(name);
+}
+
+async function themeDelete() {
+  if (!_theme || _theme.readonly) return;
+  const r = await pywebview.api.delete_theme(_theme.name);
+  if (r.ok) {
+    panelLoaded.settings = false;
+    await loadThemeManager();
+  }
 }
 </script>
 </body>

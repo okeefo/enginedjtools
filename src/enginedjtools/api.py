@@ -148,6 +148,118 @@ class Api:
         dest.write_text(json.dumps(data, indent=2), encoding="utf-8")
         return {"ok": True}
 
+    def load_theme(self, name: str) -> dict[str, Any]:
+        """Load any theme by name — bundled or user."""
+        import json  # noqa: PLC0415
+        if name == "Acid House":
+            return json.loads(_bundled_theme_path().read_text(encoding="utf-8"))
+        for p in _user_themes_dir().glob("*.json"):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if data.get("name") == name:
+                    return data
+            except Exception:
+                pass
+        return {}
+
+    def delete_theme(self, name: str) -> dict[str, Any]:
+        """Delete a user theme by name (readonly themes cannot be deleted)."""
+        import json  # noqa: PLC0415
+        for p in _user_themes_dir().glob("*.json"):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if data.get("name") == name:
+                    if data.get("readonly", False):
+                        return {"ok": False, "error": "Cannot delete a readonly theme"}
+                    p.unlink()
+                    return {"ok": True}
+            except Exception:
+                pass
+        return {"ok": False, "error": "Theme not found"}
+
+    # ── Track issues ──────────────────────────────────────────────────────────────
+
+    def get_track_issues(self) -> list[dict[str, Any]]:
+        """Scan all tracks for bad filenames. Standalone — no full diagnostic run."""
+        if not self._library:
+            return []
+        from enginedjtools.tools.backup_debugger import _scan_tracks  # noqa: PLC0415
+        issues = _scan_tracks(self._library.m_db)
+        return [{"track_id": t.track_id, "path": t.path, "issues": t.issues} for t in issues]
+
+    # ── Library stats ─────────────────────────────────────────────────────────────
+
+    def get_library_stats(self) -> dict[str, Any]:
+        """Return track counts and DB metadata for the Library Stats panel."""
+        if not self._library:
+            return {"error": "No library selected"}
+        try:
+            with sqlite3.connect(str(self._library.m_db)) as conn:
+                track_count = conn.execute("SELECT COUNT(*) FROM Track").fetchone()[0]
+                bpm_count   = conn.execute("SELECT COUNT(*) FROM Track WHERE bpm > 0").fetchone()[0]
+                year_count  = conn.execute("SELECT COUNT(*) FROM Track WHERE year IS NOT NULL AND year > 0").fetchone()[0]
+                try:
+                    crate_count = conn.execute("SELECT COUNT(*) FROM Crate").fetchone()[0]
+                except sqlite3.Error:
+                    crate_count = 0
+                try:
+                    playlist_count = conn.execute("SELECT COUNT(*) FROM Playlist").fetchone()[0]
+                except sqlite3.Error:
+                    playlist_count = 0
+            db_size_mb = 0.0
+            for db in [self._library.m_db, self._library.p_db]:
+                try:
+                    db_size_mb += db.stat().st_size / (1024 * 1024)
+                except OSError:
+                    pass
+            return {
+                "track_count":    track_count,
+                "bpm_count":      bpm_count,
+                "year_count":     year_count,
+                "crate_count":    crate_count,
+                "playlist_count": playlist_count,
+                "db_size_mb":     round(db_size_mb, 1),
+                "schema_version": self._library.schema_version,
+            }
+        except sqlite3.Error as e:
+            return {"error": str(e)}
+
+    # ── Manual backup ─────────────────────────────────────────────────────────────
+
+    def run_backup(self) -> dict[str, Any]:
+        """Create a timestamped ZIP backup of the Database2 folder."""
+        import datetime  # noqa: PLC0415
+        import zipfile   # noqa: PLC0415
+        if not self._library:
+            return {"ok": False, "error": "No library selected"}
+        db2 = self._library.root / "Database2"
+        backup_dir = self._library.root / "Engine Library Backup"
+        backup_dir.mkdir(exist_ok=True)
+        ts   = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        dest = backup_dir / f"manual_backup_{ts}.zip"
+        try:
+            with zipfile.ZipFile(str(dest), "w", zipfile.ZIP_DEFLATED) as zf:
+                for f in db2.rglob("*"):
+                    if f.is_file():
+                        zf.write(str(f), f.relative_to(db2))
+            size_mb = round(dest.stat().st_size / (1024 * 1024), 1)
+            return {"ok": True, "path": str(dest), "name": dest.name, "size_mb": size_mb}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def list_backups(self) -> list[dict[str, Any]]:
+        """List existing backup ZIPs sorted newest first."""
+        if not self._library:
+            return []
+        backup_dir = self._library.root / "Engine Library Backup"
+        if not backup_dir.exists():
+            return []
+        zips = sorted(backup_dir.glob("*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
+        return [
+            {"name": z.name, "size_mb": round(z.stat().st_size / (1024 * 1024), 1)}
+            for z in zips[:20]
+        ]
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
