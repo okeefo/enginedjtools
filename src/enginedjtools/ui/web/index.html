@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Engine DJ Tools</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-0: #05050c; --bg-1: #0a0a15; --bg-2: #0f0f20; --bg-3: #16162a;
+      --cyan: #00f5ff; --pink: #ff0080; --yellow: #eeff00;
+      --green: #00ff88; --red: #ff2244;
+      --dim: #3a3a5c; --text: #d0d0ee; --muted: #6a6a8a;
+      --font-display: 'Orbitron', monospace;
+      --font-body:    'Rajdhani', sans-serif;
+      --font-mono:    'Share Tech Mono', monospace;
+    }
+
+    html, body { height: 100%; background: var(--bg-0); color: var(--text);
+      font-family: var(--font-body); font-size: 15px; overflow: hidden; }
+
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,245,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ══════════════════════════════════ SCAN OVERLAY ══ */
+    #scan-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: var(--bg-0);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 24px;
+    }
+    #scan-overlay.hidden { display: none; }
+
+    .scan-logo {
+      font-family: var(--font-display); font-size: 22px; font-weight: 900;
+      color: var(--cyan); letter-spacing: 3px;
+      text-shadow: 0 0 30px rgba(0,245,255,0.5);
+    }
+    .scan-sub {
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 4px;
+      color: var(--pink); margin-top: -16px;
+    }
+    .scan-status {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px;
+      color: var(--muted); min-height: 20px;
+    }
+    .scan-status.error { color: var(--red); }
+
+    .library-list {
+      list-style: none; width: 480px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .library-item {
+      background: var(--bg-2); border: 1px solid rgba(0,245,255,0.15);
+      border-radius: 4px; padding: 14px 18px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .library-item:hover { border-color: var(--cyan); background: rgba(0,245,255,0.06); }
+    .library-item-path { font-family: var(--font-mono); font-size: 11px; color: var(--text); }
+    .library-item-meta { font-family: var(--font-mono); font-size: 9px; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+
+    .scan-actions { display: flex; gap: 12px; }
+
+    /* ══════════════════════════════════ APP SHELL ══ */
+    .app { position: relative; z-index: 1; display: flex; height: 100vh; }
+
+    /* ══════════════ SIDEBAR ══ */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--bg-1);
+      border-right: 1px solid rgba(0,245,255,0.10);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .logo-wrap {
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid rgba(0,245,255,0.08);
+    }
+    .logo-eyebrow {
+      font-family: var(--font-mono); font-size: 8px; letter-spacing: 4px;
+      color: var(--pink); margin-bottom: 6px;
+    }
+    .logo-text {
+      font-family: var(--font-display); font-size: 15px; font-weight: 900;
+      letter-spacing: 1px; color: var(--cyan); line-height: 1.2;
+      text-shadow: 0 0 18px rgba(0,245,255,0.4);
+    }
+    .logo-sub {
+      font-family: var(--font-mono); font-size: 8px; color: var(--muted);
+      letter-spacing: 2px; margin-top: 4px;
+    }
+
+    .db-pill {
+      margin: 12px 14px 0;
+      background: rgba(238,255,0,0.05); border: 1px solid rgba(238,255,0,0.20);
+      border-radius: 4px; padding: 8px 10px;
+    }
+    .db-pill-label { font-family: var(--font-mono); font-size: 8px; letter-spacing: 3px; color: var(--yellow); margin-bottom: 3px; }
+    .db-pill-path  { font-family: var(--font-mono); font-size: 9px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .db-pill-tracks{ font-family: var(--font-mono); font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+    nav { flex: 1; padding: 14px 0; overflow-y: auto; }
+
+    .nav-section {
+      font-family: var(--font-mono); font-size: 8px; letter-spacing: 3px;
+      color: var(--dim); padding: 0 20px; margin: 10px 0 4px;
+    }
+
+    .nav-item {
+      position: relative; display: flex; align-items: center; gap: 12px;
+      padding: 11px 20px; cursor: pointer;
+      transition: background 0.15s; user-select: none;
+    }
+    .nav-item::before {
+      content: ''; position: absolute; left: 0; top: 50%;
+      transform: translateY(-50%) scaleY(0);
+      width: 3px; height: 60%; background: var(--cyan);
+      border-radius: 0 2px 2px 0;
+      box-shadow: 0 0 8px var(--cyan);
+      transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .nav-item:hover { background: rgba(0,245,255,0.05); }
+    .nav-item.active { background: rgba(0,245,255,0.08); }
+    .nav-item.active::before { transform: translateY(-50%) scaleY(1); }
+
+    .nav-icon { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
+    .nav-label {
+      font-family: var(--font-body); font-weight: 600; font-size: 13px;
+      letter-spacing: 0.5px; color: var(--muted); transition: color 0.15s;
+    }
+    .nav-item:hover .nav-label, .nav-item.active .nav-label { color: var(--text); }
+    .nav-item.active .nav-label { color: var(--cyan); }
+
+    .sidebar-sep { border-top: 1px solid rgba(0,245,255,0.07); margin: 6px 0; }
+    .sidebar-footer {
+      padding: 10px 20px 14px; font-family: var(--font-mono);
+      font-size: 8px; color: var(--dim); letter-spacing: 1px;
+    }
+    .sidebar-footer span { color: var(--cyan); }
+
+    /* ══════════════ MAIN AREA ══ */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      height: 58px; flex-shrink: 0; background: var(--bg-1);
+      border-bottom: 1px solid rgba(0,245,255,0.10);
+      display: flex; align-items: center; padding: 0 28px; gap: 20px;
+    }
+    .topbar-title {
+      font-family: var(--font-display); font-size: 13px; font-weight: 700;
+      letter-spacing: 2px; color: var(--text); flex-shrink: 0;
+    }
+    .topbar-title span { color: var(--cyan); }
+    .waveform { display: flex; align-items: center; gap: 2px; flex: 1; height: 32px; overflow: hidden; }
+    .waveform-bar { width: 3px; background: var(--cyan); border-radius: 1px; opacity: 0.4; }
+    .status-chips { display: flex; gap: 8px; flex-shrink: 0; }
+    .chip {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px;
+      padding: 3px 8px; border-radius: 2px; border: 1px solid; text-transform: uppercase;
+    }
+    .chip-ok    { color: var(--green);  border-color: rgba(0,255,136,0.3);  background: rgba(0,255,136,0.06); }
+    .chip-warn  { color: var(--yellow); border-color: rgba(238,255,0,0.3);  background: rgba(238,255,0,0.06); }
+    .chip-error { color: var(--red);    border-color: rgba(255,34,68,0.35); background: rgba(255,34,68,0.06); }
+
+    /* ══════════════ PANELS ══ */
+    .panel { display: none; flex: 1; overflow-y: auto; padding: 28px; }
+    .panel.active { display: block; }
+
+    .section-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 20px; }
+    .section-title {
+      font-family: var(--font-display); font-size: 11px; font-weight: 700;
+      letter-spacing: 3px; color: var(--cyan); text-transform: uppercase;
+    }
+    .section-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0,245,255,0.3), transparent); }
+
+    .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+    .card {
+      background: var(--bg-2); border: 1px solid rgba(0,245,255,0.10);
+      border-radius: 4px; padding: 18px 20px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(0,245,255,0.25); }
+    .card-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+    .card-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+    .card-value.cyan   { color: var(--cyan);   text-shadow: 0 0 20px rgba(0,245,255,0.4); }
+    .card-value.pink   { color: var(--pink);   text-shadow: 0 0 20px rgba(255,0,128,0.4); }
+    .card-value.yellow { color: var(--yellow); text-shadow: 0 0 20px rgba(238,255,0,0.35); }
+    .card-value.green  { color: var(--green); }
+    .card-value.red    { color: var(--red);    text-shadow: 0 0 20px rgba(255,34,68,0.4); }
+    .card-sub { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-top: 5px; }
+
+    .card-wide {
+      background: var(--bg-2); border: 1px solid rgba(0,245,255,0.10);
+      border-radius: 4px; padding: 18px 20px; margin-bottom: 14px;
+    }
+    .panel-inner-title {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 3px;
+      color: var(--muted); margin-bottom: 14px;
+    }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+    /* ── Alerts ── */
+    .alert {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 14px 18px; border-radius: 4px; margin-bottom: 18px; font-size: 13px; line-height: 1.5;
+    }
+    .alert-error { background: rgba(255,34,68,0.08);  border: 1px solid rgba(255,34,68,0.3); }
+    .alert-warn  { background: rgba(238,255,0,0.05);  border: 1px solid rgba(238,255,0,0.25); }
+    .alert-icon  { font-size: 18px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
+
+    /* ── Toolbar ── */
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+    .toolbar-spacer { flex: 1; }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: var(--font-body); font-weight: 700; font-size: 12px;
+      letter-spacing: 1.5px; padding: 9px 18px; border-radius: 3px;
+      border: 1px solid; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+    .btn-primary {
+      background: var(--cyan); color: #000; border-color: var(--cyan);
+    }
+    .btn-primary:not(:disabled):hover { background: #33faff; border-color: #33faff; }
+    .btn-secondary {
+      background: transparent; color: var(--text); border-color: var(--dim);
+    }
+    .btn-secondary:not(:disabled):hover { border-color: var(--muted); }
+    .btn-danger {
+      background: transparent; color: var(--red); border-color: rgba(255,34,68,0.4);
+    }
+    .btn-danger:not(:disabled):hover { background: rgba(255,34,68,0.12); border-color: var(--red); }
+
+    /* ── Diagnostic grid ── */
+    .diag-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 22px; }
+    .diag-row {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg-2); border: 1px solid rgba(0,245,255,0.08);
+      border-radius: 3px; padding: 10px 16px;
+      opacity: 0; transform: translateX(-8px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .diag-row.reveal { opacity: 1; transform: none; }
+    .diag-indicator {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      transition: background 0.4s, box-shadow 0.4s;
+    }
+    .diag-indicator.pending { background: var(--dim); }
+    .diag-indicator.running { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); animation: pulse 0.8s infinite; }
+    .diag-indicator.ok      { background: var(--green);  box-shadow: 0 0 8px rgba(0,255,136,0.5); }
+    .diag-indicator.warn    { background: var(--yellow); box-shadow: 0 0 8px rgba(238,255,0,0.5); }
+    .diag-indicator.error   { background: var(--red);    box-shadow: 0 0 8px rgba(255,34,68,0.5); }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .diag-info { flex: 1; }
+    .diag-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px; color: var(--muted); }
+    .diag-value { font-family: var(--font-mono); font-size: 11px; color: var(--text); margin-top: 2px; }
+    .diag-value.ok   { color: var(--green); }
+    .diag-value.warn { color: var(--yellow); }
+    .diag-value.error{ color: var(--red); }
+
+    /* ── Backup list ── */
+    .backup-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .backup-item {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+      padding: 6px 0; border-bottom: 1px solid rgba(0,245,255,0.06);
+    }
+    .backup-name { flex: 1; color: var(--text); }
+    .backup-size { color: var(--muted); }
+
+    /* ── Space bar ── */
+    .space-bar-wrap { margin-bottom: 10px; }
+    .space-bar-labels { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; margin-bottom: 6px; }
+    .space-bar-track { height: 8px; background: var(--bg-3); border-radius: 2px; overflow: hidden; }
+    .space-bar-fill  { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--yellow)); border-radius: 2px; transition: width 0.6s; }
+    .space-bar-fill.danger { background: linear-gradient(90deg, var(--yellow), var(--red)); }
+    .space-bar-note { font-family: var(--font-mono); font-size: 9px; color: var(--muted); margin-top: 8px; }
+
+    /* ── Track issues table ── */
+    .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
+    .data-table th {
+      text-align: left; padding: 8px 12px; background: var(--bg-3); color: var(--muted);
+      letter-spacing: 2px; font-size: 9px; font-weight: normal;
+      border-bottom: 1px solid rgba(0,245,255,0.12);
+    }
+    .data-table td { padding: 9px 12px; border-bottom: 1px solid rgba(0,245,255,0.06); vertical-align: middle; }
+    .data-table tr:hover td { background: rgba(0,245,255,0.03); }
+    .data-table tr.fixed td { opacity: 0.35; }
+    .id-cell   { color: var(--muted); width: 60px; }
+    .path-cell { color: var(--text); max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .issue-tag {
+      display: inline-block; font-size: 8px; letter-spacing: 1px; font-weight: bold;
+      padding: 2px 6px; border-radius: 2px; margin-right: 4px;
+    }
+    .newline  { background: rgba(255,34,68,0.15);  color: var(--red);    border: 1px solid rgba(255,34,68,0.3); }
+    .unicode  { background: rgba(238,255,0,0.10);  color: var(--yellow); border: 1px solid rgba(238,255,0,0.3); }
+    .illegal  { background: rgba(255,0,128,0.10);  color: var(--pink);   border: 1px solid rgba(255,0,128,0.3); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-0); }
+    ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* ── Stagger animation ── */
+    .stagger > * { animation: fadeUp 0.3s both; }
+    .stagger > *:nth-child(1) { animation-delay: 0.05s; }
+    .stagger > *:nth-child(2) { animation-delay: 0.10s; }
+    .stagger > *:nth-child(3) { animation-delay: 0.15s; }
+    .stagger > *:nth-child(4) { animation-delay: 0.20s; }
+    .stagger > *:nth-child(5) { animation-delay: 0.25s; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ SCAN OVERLAY ══ -->
+<div id="scan-overlay">
+  <div class="scan-logo">ENGINE DJ TOOLS</div>
+  <div class="scan-sub">ACID HOUSE CONTROL TERMINAL</div>
+  <div id="scan-status" class="scan-status">SCANNING FOR DATABASES…</div>
+  <ul id="library-list" class="library-list" style="display:none"></ul>
+  <div id="scan-actions" class="scan-actions" style="display:none">
+    <button class="btn btn-secondary" onclick="browseForLibrary()">Browse…</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ APP ══ -->
+<div class="app">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="logo-wrap">
+      <div class="logo-eyebrow">ACID HOUSE CONTROL TERMINAL</div>
+      <div class="logo-text">ENGINE DJ<br>TOOLS</div>
+      <div class="logo-sub">DATABASE MANAGEMENT</div>
+    </div>
+
+    <div class="db-pill">
+      <div class="db-pill-label">ACTIVE DB</div>
+      <div class="db-pill-path" id="db-path">—</div>
+      <div class="db-pill-tracks" id="db-tracks"></div>
+    </div>
+
+    <nav>
+      <div class="nav-section">TOOLS</div>
+      <div class="nav-item active" data-panel="backup">
+        <span class="nav-icon">◈</span>
+        <span class="nav-label">Backup Debugger</span>
+      </div>
+      <div class="nav-item" data-panel="filenames">
+        <span class="nav-icon">⚠</span>
+        <span class="nav-label">Bad Filenames</span>
+      </div>
+      <div class="nav-item" data-panel="manual">
+        <span class="nav-icon">◉</span>
+        <span class="nav-label">Manual Backup</span>
+      </div>
+      <div class="nav-item" data-panel="stats">
+        <span class="nav-icon">≡</span>
+        <span class="nav-label">Library Stats</span>
+      </div>
+      <div class="nav-item" data-panel="browser">
+        <span class="nav-icon">⬡</span>
+        <span class="nav-label">DB Browser</span>
+      </div>
+
+      <div class="nav-section" style="margin-top:18px;">SYSTEM</div>
+      <div class="nav-item" data-panel="settings">
+        <span class="nav-icon">⚙</span>
+        <span class="nav-label">Settings</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-sep"></div>
+    <div class="sidebar-footer">v0.1.0 &nbsp;·&nbsp; <span>ENGINE DJ TOOLS</span></div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">BACKUP <span>DEBUGGER</span></div>
+      <div class="waveform" id="waveform"></div>
+      <div class="status-chips" id="status-chips"></div>
+    </div>
+
+    <!-- ════ PANEL: BACKUP DEBUGGER ════ -->
+    <div class="panel active" id="panel-backup">
+      <div class="stagger">
+
+        <div id="alert-banner" class="alert alert-error" style="display:none">
+          <span class="alert-icon">⛔</span>
+          <div id="alert-text"></div>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn btn-primary" id="run-btn" onclick="runDiagnostics()">▶ RUN DIAGNOSTICS</button>
+          <button class="btn btn-secondary" onclick="resetDiagnostics()">↺ RESET</button>
+          <div class="toolbar-spacer"></div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted)" id="last-run-label">
+            LAST RUN &nbsp;·&nbsp; <span style="color:var(--dim)">NEVER</span>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">System Checks</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="diag-grid" id="diag-grid">
+          <div class="diag-row" id="d-space">
+            <div class="diag-indicator pending" id="ind-space"></div>
+            <div class="diag-info">
+              <div class="diag-label">FREE DISK SPACE</div>
+              <div class="diag-value" id="val-space">AWAITING SCAN</div>
+            </div>
+          </div>
+          <div class="diag-row" id="d-dbsize">
+            <div class="diag-indicator pending" id="ind-dbsize"></div>
+            <div class="diag-info">
+              <div class="diag-label">DATABASE SIZE</div>
+              <div class="diag-value" id="val-dbsize">AWAITING SCAN</div>
+            </div>
+          </div>
+          <div class="diag-row" id="d-mint">
+            <div class="diag-indicator pending" id="ind-mint"></div>
+            <div class="diag-info">
+              <div class="diag-label">m.db INTEGRITY</div>
+              <div class="diag-value" id="val-mint">AWAITING SCAN</div>
+            </div>
+          </div>
+          <div class="diag-row" id="d-pint">
+            <div class="diag-indicator pending" id="ind-pint"></div>
+            <div class="diag-info">
+              <div class="diag-label">p.db INTEGRITY</div>
+              <div class="diag-value" id="val-pint">AWAITING SCAN</div>
+            </div>
+          </div>
+          <div class="diag-row" id="d-zip">
+            <div class="diag-indicator pending" id="ind-zip"></div>
+            <div class="diag-info">
+              <div class="diag-label">TEST BACKUP (ZIP)</div>
+              <div class="diag-value" id="val-zip">AWAITING SCAN</div>
+            </div>
+          </div>
+          <div class="diag-row" id="d-files">
+            <div class="diag-indicator pending" id="ind-files"></div>
+            <div class="diag-info">
+              <div class="diag-label">EXISTING BACKUPS</div>
+              <div class="diag-value" id="val-files">AWAITING SCAN</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col" id="backup-detail" style="display:none">
+          <div class="card-wide">
+            <div class="panel-inner-title">EXISTING BACKUP FILES</div>
+            <ul class="backup-list" id="backup-file-list"></ul>
+          </div>
+          <div class="card-wide" id="space-card">
+            <div class="panel-inner-title">DRIVE SPACE</div>
+            <div class="space-bar-wrap">
+              <div class="space-bar-labels">
+                <span style="color:var(--muted)">USED</span>
+                <span id="space-pct-label"></span>
+              </div>
+              <div class="space-bar-track">
+                <div class="space-bar-fill" id="space-bar-fill" style="width:0%"></div>
+              </div>
+              <div class="space-bar-labels" style="margin-top:6px">
+                <span id="space-used-label" style="color:var(--muted)"></span>
+                <span id="space-free-label"></span>
+              </div>
+            </div>
+            <div class="space-bar-note" id="space-note"></div>
+          </div>
+        </div>
+
+        <div id="filename-section" style="display:none">
+          <div class="section-header">
+            <div class="section-title">Problematic Filenames</div>
+            <div class="section-line"></div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--red)" id="issue-count-label"></div>
+          </div>
+
+          <div class="alert alert-warn" style="margin-bottom:16px">
+            <span class="alert-icon">⚠</span>
+            <div>Newline characters in filenames are the most common cause of Engine DJ backup failure.
+            The ZIP routine cannot handle paths containing embedded
+            <code style="font-family:var(--font-mono);color:var(--cyan);">\n</code> or
+            <code style="font-family:var(--font-mono);color:var(--cyan);">\r</code> characters.
+            Close Engine DJ before fixing.</div>
+          </div>
+
+          <div class="card-wide">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>FILE PATH</th>
+                  <th>ISSUE</th>
+                  <th style="text-align:right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="track-issues-tbody"></tbody>
+            </table>
+            <div style="margin-top:16px;display:flex;gap:10px" id="fix-all-bar">
+              <button class="btn btn-primary" id="fix-all-btn" style="font-size:10px;letter-spacing:2px" onclick="fixAllTracks()">
+                ⚡ FIX ALL TRACKS
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ════ PANEL: BAD FILENAMES ════ -->
+    <div class="panel" id="panel-filenames">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Bad Filename Scanner</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
+          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon — run Backup Debugger for filename issues</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL: MANUAL BACKUP ════ -->
+    <div class="panel" id="panel-manual">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Manual Backup</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
+          <div style="font-size:36px;margin-bottom:16px">💾</div>
+          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL: LIBRARY STATS ════ -->
+    <div class="panel" id="panel-stats">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Library Statistics</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
+          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL: DB BROWSER ════ -->
+    <div class="panel" id="panel-browser">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Database Browser</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
+          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL: SETTINGS ════ -->
+    <div class="panel" id="panel-settings">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Settings</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" style="text-align:center;padding:60px;color:var(--muted)">
+          <div style="font-family:var(--font-display);font-size:11px;letter-spacing:3px">Coming soon</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════ WAVEFORM ══ */
+const wf = document.getElementById('waveform');
+const BAR_COUNT = 80;
+const bars = [];
+for (let i = 0; i < BAR_COUNT; i++) {
+  const b = document.createElement('div');
+  b.className = 'waveform-bar';
+  b.style.height = '4px';
+  wf.appendChild(b);
+  bars.push(b);
+}
+let phase = 0;
+(function animate() {
+  phase += 0.04;
+  bars.forEach((b, i) => {
+    const n = i / BAR_COUNT;
+    const v = Math.sin(n * Math.PI * 3 + phase) * 0.5
+            + Math.sin(n * Math.PI * 7 + phase * 1.3) * 0.3
+            + Math.sin(n * Math.PI * 13 + phase * 0.7) * 0.2;
+    const h = Math.max(3, Math.abs(v) * 28);
+    b.style.height = h + 'px';
+    const hue = n > 0.5 ? 300 : 180;
+    const lit = 50 + Math.abs(v) * 20;
+    b.style.background = `hsl(${hue},100%,${lit}%)`;
+    b.style.opacity = 0.3 + Math.abs(v) * 0.6;
+  });
+  requestAnimationFrame(animate);
+})();
+
+/* ═══════════════════════════════════ NAV ══ */
+const panelMap = {
+  backup: 'panel-backup', filenames: 'panel-filenames',
+  manual: 'panel-manual', stats: 'panel-stats',
+  browser: 'panel-browser', settings: 'panel-settings',
+};
+const topbarTitles = {
+  backup:    'BACKUP <span>DEBUGGER</span>',
+  filenames: 'BAD <span style="color:var(--yellow)">FILENAMES</span>',
+  manual:    'MANUAL <span style="color:var(--green)">BACKUP</span>',
+  stats:     'LIBRARY <span style="color:var(--pink)">STATS</span>',
+  browser:   'DATABASE <span style="color:var(--cyan)">BROWSER</span>',
+  settings:  'APP <span style="color:var(--muted)">SETTINGS</span>',
+};
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const key = item.dataset.panel;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(panelMap[key]).classList.add('active');
+    document.getElementById('topbar-title').innerHTML = topbarTitles[key];
+  });
+});
+
+/* ═══════════════════════════════════ STARTUP SCAN ══ */
+window.addEventListener('pywebviewready', () => { initApp(); });
+
+async function initApp() {
+  try {
+    const libs = await pywebview.api.get_libraries();
+    if (libs.length === 0) {
+      showScanStatus('NO ENGINE DJ DATABASE FOUND', false);
+      document.getElementById('scan-actions').style.display = 'flex';
+    } else if (libs.length === 1) {
+      await applyLibrary(libs[0]);
+    } else {
+      showScanStatus(`FOUND ${libs.length} LIBRARIES — SELECT ONE:`, false);
+      renderLibraryList(libs);
+    }
+  } catch (e) {
+    showScanStatus('ERROR: ' + e, true);
+    document.getElementById('scan-actions').style.display = 'flex';
+  }
+}
+
+function showScanStatus(msg, isError) {
+  const el = document.getElementById('scan-status');
+  el.textContent = msg;
+  el.className = 'scan-status' + (isError ? ' error' : '');
+}
+
+function renderLibraryList(libs) {
+  const ul = document.getElementById('library-list');
+  ul.innerHTML = '';
+  libs.forEach(lib => {
+    const li = document.createElement('li');
+    li.className = 'library-item';
+    li.innerHTML = `
+      <div class="library-item-path">${lib.path}</div>
+      <div class="library-item-meta">${lib.track_count} TRACKS &nbsp;·&nbsp; SCHEMA ${lib.schema_version || 'UNKNOWN'}</div>`;
+    li.addEventListener('click', () => applyLibrary(lib));
+    ul.appendChild(li);
+  });
+  ul.style.display = 'flex';
+}
+
+async function applyLibrary(lib) {
+  showScanStatus('LOADING…', false);
+  try {
+    const result = await pywebview.api.select_library(lib.path);
+    if (result) {
+      updateDbPill(result);
+      hideScanOverlay();
+    }
+  } catch (e) {
+    showScanStatus('FAILED TO LOAD: ' + e, true);
+  }
+}
+
+async function browseForLibrary() {
+  showScanStatus('OPENING FILE BROWSER…', false);
+  const result = await pywebview.api.browse_for_library();
+  if (result) {
+    updateDbPill(result);
+    hideScanOverlay();
+  } else {
+    showScanStatus('NO LIBRARY FOUND AT SELECTED PATH', true);
+  }
+}
+
+function updateDbPill(lib) {
+  let path = lib.path || '—';
+  if (path.length > 32) path = '…' + path.slice(-30);
+  document.getElementById('db-path').textContent = path;
+  document.getElementById('db-tracks').textContent = `${lib.track_count} tracks`;
+}
+
+function hideScanOverlay() {
+  document.getElementById('scan-overlay').classList.add('hidden');
+}
+
+/* ═══════════════════════════════════ DIAGNOSTICS ══ */
+let diagRunning = false;
+let lastReport = null;
+
+async function runDiagnostics() {
+  if (diagRunning) return;
+  diagRunning = true;
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⟳ SCANNING…';
+
+  resetDiagnosticUI();
+  revealDiagRows();
+
+  // Mark all as running
+  ['space','dbsize','mint','pint','zip','files'].forEach(k => {
+    document.getElementById('ind-' + k).className = 'diag-indicator running';
+  });
+
+  try {
+    const report = await pywebview.api.run_diagnostics();
+    lastReport = report;
+    renderDiagnostics(report);
+    const now = new Date();
+    document.getElementById('last-run-label').innerHTML =
+      `LAST RUN &nbsp;·&nbsp; <span style="color:var(--cyan)">${now.toLocaleTimeString()}</span>`;
+  } catch (e) {
+    showScanStatus('Diagnostics error: ' + e, true);
+  } finally {
+    diagRunning = false;
+    btn.disabled = false;
+    btn.textContent = '▶ RUN DIAGNOSTICS';
+  }
+}
+
+function revealDiagRows() {
+  document.querySelectorAll('.diag-row').forEach((r, i) => {
+    setTimeout(() => r.classList.add('reveal'), i * 80);
+  });
+}
+
+function renderDiagnostics(r) {
+  // Checks
+  setCheck('space',  r.low_disk_space ? 'warn' : 'ok',
+    `${r.free_space_gb.toFixed(1)} GB free${r.low_disk_space ? ' — LOW' : ''}`);
+  setCheck('dbsize', 'ok', `${r.db_size_mb.toFixed(1)} MB`);
+  setCheck('mint',   r.m_db_integrity === 'ok' ? 'ok' : 'error', r.m_db_integrity);
+  setCheck('pint',   r.p_db_integrity === 'ok' ? 'ok' : 'error', r.p_db_integrity);
+  setCheck('zip',    r.test_backup_ok ? 'ok' : 'error',
+    r.test_backup_ok ? 'Test ZIP succeeded' : r.test_backup_error || 'Failed');
+  setCheck('files',  'ok', `${r.existing_backups.length} backup${r.existing_backups.length !== 1 ? 's' : ''} found`);
+
+  // Status chips
+  updateChips(r);
+
+  // Alert banner
+  if (r.track_issues && r.track_issues.length > 0) {
+    const n = r.track_issues.length;
+    document.getElementById('alert-text').innerHTML =
+      `<strong>${n} track${n>1?'s':''} with problematic filenames detected.</strong><br>` +
+      `These are the most likely cause of Engine DJ backup failure. See below to fix them.`;
+    document.getElementById('alert-banner').style.display = 'flex';
+  }
+
+  // Backup detail
+  renderBackupDetail(r);
+
+  // Track issues
+  if (r.track_issues && r.track_issues.length > 0) {
+    renderTrackIssues(r.track_issues);
+    document.getElementById('filename-section').style.display = 'block';
+    document.getElementById('issue-count-label').textContent =
+      r.track_issues.length + ' TRACKS AFFECTED';
+    document.getElementById('fix-all-btn').textContent =
+      `⚡ FIX ALL ${r.track_issues.length} TRACKS`;
+  }
+
+  document.getElementById('backup-detail').style.display = 'grid';
+}
+
+function setCheck(key, cls, text) {
+  document.getElementById('ind-' + key).className = 'diag-indicator ' + cls;
+  const v = document.getElementById('val-' + key);
+  v.textContent = text;
+  v.className = 'diag-value ' + cls;
+}
+
+function updateChips(r) {
+  const chips = document.getElementById('status-chips');
+  chips.innerHTML = '';
+  const add = (cls, txt) => {
+    const d = document.createElement('div');
+    d.className = 'chip chip-' + cls;
+    d.textContent = txt;
+    chips.appendChild(d);
+  };
+  const hasIssues = r.track_issues && r.track_issues.length > 0;
+  if (hasIssues) add('error', r.track_issues.length + ' ISSUES');
+  if (r.low_disk_space) add('warn', 'LOW SPACE');
+  const dbOk = r.m_db_integrity === 'ok' && r.p_db_integrity === 'ok';
+  add(dbOk ? 'ok' : 'error', dbOk ? 'DB HEALTHY' : 'DB ERROR');
+}
+
+function renderBackupDetail(r) {
+  // Backup file list
+  const ul = document.getElementById('backup-file-list');
+  ul.innerHTML = '';
+  if (r.existing_backups.length === 0) {
+    ul.innerHTML = '<li style="color:var(--muted);font-family:var(--font-mono);font-size:10px">No backups found</li>';
+  } else {
+    r.existing_backups.forEach(b => {
+      const li = document.createElement('li');
+      li.className = 'backup-item';
+      li.innerHTML = `<span>📦</span><span class="backup-name">${b.name}</span><span class="backup-size">${b.size_mb.toFixed(1)} MB</span>`;
+      ul.appendChild(li);
+    });
+  }
+
+  // Space bar
+  const totalGuess = r.free_space_gb + (r.db_size_mb / 1024);
+  const usedPct = Math.max(0, Math.min(100, Math.round((1 - r.free_space_gb / Math.max(totalGuess, 0.1)) * 100)));
+  const fill = document.getElementById('space-bar-fill');
+  fill.style.width = usedPct + '%';
+  fill.className = 'space-bar-fill' + (r.low_disk_space ? ' danger' : '');
+  const freeLabel = r.low_disk_space
+    ? `<span style="color:var(--yellow)">⚠ ${r.free_space_gb.toFixed(1)} GB free</span>`
+    : `<span style="color:var(--green)">${r.free_space_gb.toFixed(1)} GB free</span>`;
+  document.getElementById('space-pct-label').innerHTML =
+    r.low_disk_space ? `<span style="color:var(--yellow)">⚠ ${usedPct}% FULL</span>` : `${usedPct}% used`;
+  document.getElementById('space-used-label').textContent = '';
+  document.getElementById('space-free-label').innerHTML = freeLabel;
+  document.getElementById('space-note').textContent = r.low_disk_space
+    ? '⚠ Low free space can cause Engine DJ to report "database corrupt" instead of "disk full"'
+    : '';
+}
+
+function renderTrackIssues(issues) {
+  const tbody = document.getElementById('track-issues-tbody');
+  tbody.innerHTML = '';
+  issues.forEach(t => {
+    const tr = document.createElement('tr');
+    tr.id = 'track-row-' + t.track_id;
+    const tags = t.issues.map(i => {
+      if (i.includes('newline'))  return '<span class="issue-tag newline">NEWLINE</span>';
+      if (i.includes('non-ASCII')) return '<span class="issue-tag unicode">NON-ASCII</span>';
+      return '<span class="issue-tag illegal">ILLEGAL</span>';
+    }).join('');
+    tr.innerHTML = `
+      <td class="id-cell">${t.track_id}</td>
+      <td class="path-cell" title="${escHtml(t.path)}">${escHtml(t.path)}</td>
+      <td>${tags}</td>
+      <td style="text-align:right">
+        <button class="btn btn-danger" style="padding:4px 12px;font-size:9px;letter-spacing:1px"
+          onclick="fixTrack(${t.track_id})">FIX</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ═══════════════════════════════════ FIX ══ */
+async function fixTrack(trackId) {
+  const row = document.getElementById('track-row-' + trackId);
+  const btn = row.querySelector('button');
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const result = await pywebview.api.fix_track(trackId);
+    if (result.ok) {
+      row.classList.add('fixed');
+      btn.textContent = '✓';
+      btn.style.color = 'var(--green)';
+    } else {
+      btn.textContent = '!';
+      btn.title = result.error || 'Error';
+    }
+  } catch (e) {
+    btn.textContent = '!';
+  }
+}
+
+async function fixAllTracks() {
+  const btn = document.getElementById('fix-all-btn');
+  btn.disabled = true;
+  btn.textContent = '⟳ FIXING…';
+  try {
+    const result = await pywebview.api.fix_all_tracks();
+    if (result.ok) {
+      document.querySelectorAll('#track-issues-tbody tr').forEach(r => {
+        r.classList.add('fixed');
+        const b = r.querySelector('button');
+        if (b) { b.textContent = '✓'; b.style.color = 'var(--green)'; b.disabled = true; }
+      });
+      btn.textContent = `✓ FIXED ${result.fixed} TRACKS`;
+      btn.style.background = 'var(--green)';
+      btn.style.borderColor = 'var(--green)';
+    } else {
+      btn.textContent = '! ERROR';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    btn.textContent = '! ERROR';
+    btn.disabled = false;
+  }
+}
+
+/* ═══════════════════════════════════ RESET ══ */
+function resetDiagnostics() {
+  lastReport = null;
+  document.getElementById('backup-detail').style.display = 'none';
+  document.getElementById('filename-section').style.display = 'none';
+  document.getElementById('alert-banner').style.display = 'none';
+  document.getElementById('status-chips').innerHTML = '';
+  document.getElementById('track-issues-tbody').innerHTML = '';
+  document.getElementById('backup-file-list').innerHTML = '';
+  const fixAllBtn = document.getElementById('fix-all-btn');
+  fixAllBtn.disabled = false;
+  fixAllBtn.textContent = '⚡ FIX ALL TRACKS';
+  fixAllBtn.style.background = '';
+  fixAllBtn.style.borderColor = '';
+
+  ['space','dbsize','mint','pint','zip','files'].forEach(k => {
+    document.getElementById('ind-' + k).className = 'diag-indicator pending';
+    const v = document.getElementById('val-' + k);
+    v.textContent = 'AWAITING SCAN';
+    v.className = 'diag-value';
+  });
+  document.querySelectorAll('.diag-row').forEach(r => r.classList.remove('reveal'));
+}
+
+/* ═══════════════════════════════════ UTILS ══ */
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
