@@ -1,0 +1,63 @@
+{
+  "name": "Acid House",
+  "readonly": true,
+  "colors": {
+    "bg_primary":           "#05050c",
+    "bg_secondary":         "#08080f",
+    "bg_surface":           "#0d0d1f",
+    "bg_elevated":          "#12122a",
+    "border":               "#1a1a3a",
+    "border_accent":        "#00f5ff",
+    "accent_cyan":          "#00f5ff",
+    "accent_magenta":       "#ff0080",
+    "accent_yellow":        "#eeff00",
+    "text_primary":         "#e8e8ff",
+    "text_secondary":       "#8888aa",
+    "text_disabled":        "#444466",
+    "text_on_accent":       "#05050c",
+    "success":              "#00ff88",
+    "warning":              "#ffaa00",
+    "error":                "#ff3355",
+    "sidebar_bg":           "#08080f",
+    "sidebar_active_bg":    "#0d1a2a",
+    "sidebar_active_border":"#00f5ff",
+    "topbar_bg":            "#080810",
+    "button_bg":            "#0d0d1f",
+    "button_hover_bg":      "#1a1a3a",
+    "button_primary_bg":    "#00f5ff",
+    "button_primary_text":  "#05050c",
+    "table_header_bg":      "#0d0d1f",
+    "table_row_alt":        "#0a0a18",
+    "input_bg":             "#0d0d1f",
+    "input_border":         "#1a1a3a",
+    "scrollbar_bg":         "#08080f",
+    "scrollbar_handle":     "#1a1a3a",
+    "waveform_a":           "#00f5ff",
+    "waveform_b":           "#ff0080"
+  },
+  "fonts": {
+    "display":          "Orbitron",
+    "mono":             "Share Tech Mono",
+    "body":             "Rajdhani",
+    "display_fallback": "Arial Black",
+    "mono_fallback":    "Consolas",
+    "body_fallback":    "Segoe UI"
+  },
+  "sizes": {
+    "font_title":   18,
+    "font_heading": 13,
+    "font_body":    12,
+    "font_small":   10,
+    "font_mono":    11,
+    "font_nav":     11
+  },
+  "spacing": {
+    "sidebar_width":   200,
+    "topbar_height":    56,
+    "padding_sm":        6,
+    "padding_md":       12,
+    "padding_lg":       20,
+    "border_radius":     3,
+    "border_radius_lg":  6
+  }
+}

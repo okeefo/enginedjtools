@@ -6,9 +6,9 @@ build-backend = "hatchling.build"
 name = "enginedjtools"
 version = "0.1.0"
 description = "Tools for Denon Engine DJ database management"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
-    "textual>=0.80.0",
+    "PyQt5>=5.15",
 ]
 
 [project.scripts]

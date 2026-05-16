@@ -12,7 +12,6 @@ from pathlib import Path
 from enginedjtools.db.queries import integrity_check
 from enginedjtools.scanner import EngineLibrary
 
-
 # Characters that are illegal in Windows filenames
 _WINDOWS_ILLEGAL = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 # Newline variants — Keith's suspected cause
