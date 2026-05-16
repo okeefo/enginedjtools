@@ -18,17 +18,47 @@ class Api:
 
     # ── Library discovery ─────────────────────────────────────────────────────
 
-    def get_libraries(self) -> list[dict[str, Any]]:
-        """Scan the machine for Engine DJ libraries."""
+    def get_startup_state(self) -> dict[str, Any]:
+        """Single call that returns everything needed at startup.
+
+        Returns active theme data, cached known libraries, and the last-used
+        library path — so the JS side can skip scanning on subsequent launches.
+        """
+        import json  # noqa: PLC0415
+        settings = _load_settings()
+        theme_name = settings.get("active_theme", "Acid House")
+        theme_data = self.load_theme(theme_name)
+        if not theme_data:
+            theme_name = "Acid House"
+            theme_data = json.loads(_bundled_theme_path().read_text(encoding="utf-8"))
+        return {
+            "active_theme":        {"name": theme_name, "data": theme_data},
+            "known_libraries":     settings.get("known_libraries", []),
+            "active_library_path": settings.get("active_library"),
+        }
+
+    def scan_libraries(self) -> list[dict[str, Any]]:
+        """Force a fresh filesystem scan and cache the results."""
         from enginedjtools.scanner import scan  # noqa: PLC0415
         libs = scan()
-        return [_lib_to_dict(lib) for lib in libs]
+        result = [_lib_to_dict(lib) for lib in libs]
+        settings = _load_settings()
+        settings["known_libraries"] = result
+        _save_settings(settings)
+        return result
+
+    def get_libraries(self) -> list[dict[str, Any]]:
+        """Scan the machine for Engine DJ libraries (kept for compatibility)."""
+        return self.scan_libraries()
 
     def select_library(self, path: str) -> dict[str, Any] | None:
-        """Set the active library by its root path."""
+        """Set the active library by its root path and persist the choice."""
         lib = _read_library(Path(path))
         if lib:
             self._library = lib
+            settings = _load_settings()
+            settings["active_library"] = path
+            _save_settings(settings)
             return _lib_to_dict(lib)
         return None
 
@@ -38,7 +68,15 @@ class Api:
         result = webview.windows[0].create_file_dialog(webview.FOLDER_DIALOG)
         if not result:
             return None
-        return self.select_library(result[0])
+        lib_dict = self.select_library(result[0])
+        if lib_dict:
+            settings = _load_settings()
+            known = settings.get("known_libraries", [])
+            if not any(k["path"] == lib_dict["path"] for k in known):
+                known.append(lib_dict)
+                settings["known_libraries"] = known
+                _save_settings(settings)
+        return lib_dict
 
     # ── Diagnostics ───────────────────────────────────────────────────────────
 

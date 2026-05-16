@@ -48,6 +48,15 @@
       flex-direction: column; gap: 24px;
     }
     #scan-overlay.hidden { display: none; }
+    .scan-close {
+      position: absolute; top: 20px; right: 24px;
+      background: none; border: 1px solid rgba(0,245,255,0.15); border-radius: 3px;
+      color: var(--muted); font-family: var(--font-mono); font-size: 14px;
+      width: 32px; height: 32px; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .scan-close:hover { color: var(--text); border-color: var(--cyan); }
 
     .scan-logo {
       font-family: var(--font-display); font-size: 22px; font-weight: 900;
@@ -150,6 +159,14 @@
     .db-pill-label { font-family: var(--font-mono); font-size: 8px; letter-spacing: 3px; color: var(--yellow); margin-bottom: 3px; }
     .db-pill-path  { font-family: var(--font-mono); font-size: 9px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .db-pill-tracks{ font-family: var(--font-mono); font-size: 9px; color: var(--muted); margin-top: 2px; }
+    .db-change-btn {
+      margin-top: 8px; width: 100%;
+      background: none; border: 1px solid rgba(0,245,255,0.12); border-radius: 3px;
+      color: var(--muted); font-family: var(--font-mono); font-size: 8px; letter-spacing: 2px;
+      padding: 5px 8px; cursor: pointer; text-align: center;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .db-change-btn:hover { color: var(--cyan); border-color: rgba(0,245,255,0.4); }
 
     nav { flex: 1; padding: 14px 0; overflow-y: auto; }
 
@@ -455,12 +472,14 @@
 
 <!-- ══════════════════════════════════════ SCAN OVERLAY ══ -->
 <div id="scan-overlay">
+  <button class="scan-close" id="scan-close-btn" onclick="hideScanOverlay()" style="display:none" title="Close">✕</button>
   <div class="scan-logo">ENGINE DJ TOOLS</div>
   <div class="scan-sub">ACID HOUSE CONTROL TERMINAL</div>
   <div id="scan-status" class="scan-status">SCANNING FOR DATABASES…</div>
   <div class="kitt-scanner" id="kitt-scanner"><div class="kitt-light"></div></div>
   <ul id="library-list" class="library-list" style="display:none"></ul>
   <div id="scan-actions" class="scan-actions" style="display:none">
+    <button class="btn btn-primary" onclick="reScan()">⟳ RESCAN</button>
     <button class="btn btn-secondary" onclick="browseForLibrary()">Browse…</button>
   </div>
 </div>
@@ -480,6 +499,7 @@
       <div class="db-pill-label">ACTIVE DB</div>
       <div class="db-pill-path" id="db-path">—</div>
       <div class="db-pill-tracks" id="db-tracks"></div>
+      <button class="db-change-btn" onclick="openLibraryPicker()">⟳ CHANGE LIBRARY</button>
     </div>
 
     <nav>
@@ -895,31 +915,94 @@ document.querySelectorAll('.nav-item').forEach(item => {
 /* ═══════════════════════════════════ STARTUP SCAN ══ */
 window.addEventListener('pywebviewready', () => { initApp(); });
 
-async function initApp() {
-  /* Apply saved theme immediately so the correct colours show before any panel loads */
-  try {
-    const active = await pywebview.api.get_active_theme();
-    _theme = active.data;
-    themeApplyAll(active.data);
-  } catch (_) { /* fall through — CSS defaults are fine */ }
+let _knownLibs = [];
+let _hasActiveLib = false;
 
+async function initApp() {
   try {
-    const libs = await pywebview.api.get_libraries();
-    if (libs.length === 0) {
-      showScanStatus('NO ENGINE DJ DATABASE FOUND', false);
-      hideKittScanner();
-      document.getElementById('scan-actions').style.display = 'flex';
-    } else if (libs.length === 1) {
-      await applyLibrary(libs[0]);
+    const state = await pywebview.api.get_startup_state();
+
+    /* Apply saved theme before anything renders */
+    _theme = state.active_theme.data;
+    themeApplyAll(state.active_theme.data);
+
+    _knownLibs = state.known_libraries || [];
+
+    /* Auto-connect to last used library — no overlay needed */
+    if (state.active_library_path) {
+      const result = await pywebview.api.select_library(state.active_library_path);
+      if (result) {
+        updateDbPill(result);
+        _hasActiveLib = true;
+        hideScanOverlay();
+        return;
+      }
+    }
+
+    /* Known libs cached but no auto-connect — show picker instantly */
+    hideKittScanner();
+    if (_knownLibs.length === 0) {
+      /* First run — do a real scan */
+      await doScan();
+    } else if (_knownLibs.length === 1) {
+      await applyLibrary(_knownLibs[0]);
     } else {
-      showScanStatus(`FOUND ${libs.length} LIBRARIES — SELECT ONE:`, false);
-      hideKittScanner();
-      renderLibraryList(libs);
+      showScanStatus(`FOUND ${_knownLibs.length} LIBRARIES — SELECT ONE:`, false);
+      renderLibraryList(_knownLibs);
+      document.getElementById('scan-actions').style.display = 'flex';
     }
   } catch (e) {
     showScanStatus('ERROR: ' + e, true);
     hideKittScanner();
     document.getElementById('scan-actions').style.display = 'flex';
+  }
+}
+
+async function doScan() {
+  showScanStatus('SCANNING FOR DATABASES…', false);
+  document.getElementById('kitt-scanner').style.display = 'block';
+  document.getElementById('library-list').style.display = 'none';
+  document.getElementById('scan-actions').style.display = 'none';
+  try {
+    const libs = await pywebview.api.scan_libraries();
+    _knownLibs = libs;
+    hideKittScanner();
+    if (libs.length === 0) {
+      showScanStatus('NO ENGINE DJ DATABASE FOUND', false);
+      document.getElementById('scan-actions').style.display = 'flex';
+    } else if (libs.length === 1) {
+      await applyLibrary(libs[0]);
+    } else {
+      showScanStatus(`FOUND ${libs.length} LIBRARIES — SELECT ONE:`, false);
+      renderLibraryList(libs);
+      document.getElementById('scan-actions').style.display = 'flex';
+    }
+  } catch (e) {
+    hideKittScanner();
+    showScanStatus('SCAN ERROR: ' + e, true);
+    document.getElementById('scan-actions').style.display = 'flex';
+  }
+}
+
+async function reScan() {
+  await doScan();
+}
+
+function openLibraryPicker() {
+  const overlay = document.getElementById('scan-overlay');
+  overlay.classList.remove('hidden');
+  hideKittScanner();
+  /* Show close button since a library is already active */
+  document.getElementById('scan-close-btn').style.display = _hasActiveLib ? 'flex' : 'none';
+  document.getElementById('scan-actions').style.display = 'flex';
+  if (_knownLibs.length > 0) {
+    showScanStatus(_knownLibs.length === 1
+      ? '1 KNOWN LIBRARY'
+      : `${_knownLibs.length} KNOWN LIBRARIES — SELECT ONE:`, false);
+    renderLibraryList(_knownLibs);
+  } else {
+    showScanStatus('NO CACHED LIBRARIES — RESCAN OR BROWSE', false);
+    document.getElementById('library-list').style.display = 'none';
   }
 }
 
@@ -954,6 +1037,7 @@ async function applyLibrary(lib) {
     const result = await pywebview.api.select_library(lib.path);
     if (result) {
       updateDbPill(result);
+      _hasActiveLib = true;
       hideScanOverlay();
     }
   } catch (e) {
@@ -965,7 +1049,10 @@ async function browseForLibrary() {
   showScanStatus('OPENING FILE BROWSER…', false);
   const result = await pywebview.api.browse_for_library();
   if (result) {
+    /* Add to our in-memory list if not already there */
+    if (!_knownLibs.find(l => l.path === result.path)) _knownLibs.push(result);
     updateDbPill(result);
+    _hasActiveLib = true;
     hideScanOverlay();
   } else {
     showScanStatus('NO LIBRARY FOUND AT SELECTED PATH', true);
