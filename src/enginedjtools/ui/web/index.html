@@ -8,29 +8,51 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg-0: #05050c; --bg-1: #0a0a15; --bg-2: #0f0f20; --bg-3: #16162a;
+      /* Core palette — kept for any hard-coded references */
+      --bg-0: #05050c; --bg-1: #08080f; --bg-2: #0d0d1f; --bg-3: #12122a;
       --cyan: #00f5ff; --pink: #ff0080; --yellow: #eeff00;
-      --green: #00ff88; --red: #ff2244;
-      --dim: #3a3a5c; --text: #d0d0ee; --muted: #6a6a8a;
+      --green: #00ff88; --red: #ff3355; --warning: #ffaa00;
+      --dim: #444466; --text: #e8e8ff; --muted: #8888aa;
       --font-display: 'Orbitron', monospace;
       --font-body:    'Rajdhani', sans-serif;
       --font-mono:    'Share Tech Mono', monospace;
-      /* theme-driven font sizes */
+      /* Font sizes */
       --fs-title:   18px;
       --fs-heading: 13px;
-      --fs-body:    13px;
+      --fs-body:    12px;
       --fs-small:   10px;
       --fs-mono:    11px;
-      --fs-nav:     13px;
-      /* theme-driven spacing */
+      --fs-nav:     11px;
+      /* Layout */
       --sidebar-width:  240px;
       --topbar-height:   56px;
       --radius:           3px;
       --radius-lg:        6px;
+      --pad-sm: 6px; --pad-md: 12px; --pad-lg: 20px;
+      /* Full theme colour tokens */
+      --text-on-accent:        #05050c;
+      --border-color:          #1a1a3a;
+      --border-accent:         #00f5ff;
+      --sidebar-bg:            #08080f;
+      --sidebar-active-bg:     #0d1a2a;
+      --sidebar-active-border: #00f5ff;
+      --topbar-bg:             #080810;
+      --btn-bg:                #0d0d1f;
+      --btn-hover-bg:          #1a1a3a;
+      --btn-primary-bg:        #00f5ff;
+      --btn-primary-text:      #05050c;
+      --table-header-bg:       #0d0d1f;
+      --table-row-alt:         #0a0a18;
+      --input-bg:              #0d0d1f;
+      --input-border:          #1a1a3a;
+      --scrollbar-bg:          #08080f;
+      --scrollbar-handle:      #1a1a3a;
+      --waveform-a:            #00f5ff;
+      --waveform-b:            #ff0080;
     }
 
     html, body { height: 100%; background: var(--bg-0); color: var(--text);
-      font-family: var(--font-body); font-size: 15px; overflow: hidden; }
+      font-family: var(--font-body); font-size: var(--fs-body); overflow: hidden; }
 
     body::before {
       content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -128,8 +150,8 @@
     /* ══════════════ SIDEBAR ══ */
     .sidebar {
       width: var(--sidebar-width); flex-shrink: 0;
-      background: var(--bg-1);
-      border-right: 1px solid rgba(0,245,255,0.10);
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
       display: flex; flex-direction: column; overflow: hidden;
     }
 
@@ -183,13 +205,13 @@
     .nav-item::before {
       content: ''; position: absolute; left: 0; top: 50%;
       transform: translateY(-50%) scaleY(0);
-      width: 3px; height: 60%; background: var(--cyan);
+      width: 3px; height: 60%; background: var(--sidebar-active-border);
       border-radius: 0 2px 2px 0;
-      box-shadow: 0 0 8px var(--cyan);
+      box-shadow: 0 0 8px var(--sidebar-active-border);
       transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .nav-item:hover { background: rgba(0,245,255,0.05); }
-    .nav-item.active { background: rgba(0,245,255,0.08); }
+    .nav-item:hover { background: var(--btn-hover-bg); }
+    .nav-item.active { background: var(--sidebar-active-bg); }
     .nav-item.active::before { transform: translateY(-50%) scaleY(1); }
 
     .nav-icon { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
@@ -198,7 +220,7 @@
       letter-spacing: 0.5px; color: var(--muted); transition: color 0.15s;
     }
     .nav-item:hover .nav-label, .nav-item.active .nav-label { color: var(--text); }
-    .nav-item.active .nav-label { color: var(--cyan); }
+    .nav-item.active .nav-label { color: var(--sidebar-active-border); }
 
     .sidebar-sep { border-top: 1px solid rgba(0,245,255,0.07); margin: 6px 0; }
     .sidebar-footer {
@@ -211,8 +233,8 @@
     .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
     .topbar {
-      height: var(--topbar-height); flex-shrink: 0; background: var(--bg-1);
-      border-bottom: 1px solid rgba(0,245,255,0.10);
+      height: var(--topbar-height); flex-shrink: 0; background: var(--topbar-bg);
+      border-bottom: 1px solid var(--border-color);
       display: flex; align-items: center; padding: 0 28px; gap: 20px;
     }
     .topbar-title {
@@ -248,7 +270,7 @@
       font-family: var(--font-display); font-size: var(--fs-heading); font-weight: 700;
       letter-spacing: 3px; color: var(--cyan); text-transform: uppercase;
     }
-    .section-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0,245,255,0.3), transparent); }
+    .section-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-accent), transparent); opacity: 0.4; }
 
     .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
     .card {
@@ -299,13 +321,13 @@
     }
     .btn:disabled { opacity: 0.4; cursor: default; }
     .btn-primary {
-      background: var(--cyan); color: #000; border-color: var(--cyan);
+      background: var(--btn-primary-bg); color: var(--btn-primary-text); border-color: var(--btn-primary-bg);
     }
-    .btn-primary:not(:disabled):hover { background: #33faff; border-color: #33faff; }
+    .btn-primary:not(:disabled):hover { filter: brightness(1.1); }
     .btn-secondary {
-      background: transparent; color: var(--text); border-color: var(--dim);
+      background: var(--btn-bg); color: var(--text); border-color: var(--border-color);
     }
-    .btn-secondary:not(:disabled):hover { border-color: var(--muted); }
+    .btn-secondary:not(:disabled):hover { background: var(--btn-hover-bg); border-color: var(--input-border); }
     .btn-danger {
       background: transparent; color: var(--red); border-color: rgba(255,34,68,0.4);
     }
@@ -359,9 +381,9 @@
     /* ── Track issues table ── */
     .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: var(--fs-mono); }
     .data-table th {
-      text-align: left; padding: 8px 12px; background: var(--bg-3); color: var(--muted);
+      text-align: left; padding: 8px 12px; background: var(--table-header-bg); color: var(--muted);
       letter-spacing: 2px; font-size: 9px; font-weight: normal;
-      border-bottom: 1px solid rgba(0,245,255,0.12);
+      border-bottom: 1px solid var(--border-color);
     }
     .data-table td { padding: 9px 12px; border-bottom: 1px solid rgba(0,245,255,0.06); vertical-align: middle; }
     .data-table tr:hover td { background: rgba(0,245,255,0.03); }
@@ -378,8 +400,8 @@
 
     /* ── Scrollbar ── */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg-0); }
-    ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-handle); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
     /* ── Stat cards ── */
@@ -425,39 +447,64 @@
     }
     .theme-name-input:focus { border-color: var(--cyan); }
 
-    /* Color grid */
-    .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-    .color-item { display:flex; align-items:center; gap:8px; }
-    input[type="color"].color-swatch {
-      width: 30px; height: 30px; border: 1px solid var(--dim); border-radius: 3px;
-      cursor: pointer; padding: 1px; background: none; flex-shrink: 0;
+    /* ── Theme manager redesigned ── */
+    .tm-group { margin-bottom: 22px; }
+    .tm-group-header {
+      grid-column: 1 / -1;
+      font-family: var(--font-mono); font-size: 8px; letter-spacing: 3px;
+      color: var(--border-accent); text-transform: uppercase;
+      padding-bottom: 6px; border-bottom: 1px solid var(--border-color);
+      margin-bottom: 4px; opacity: 0.8;
     }
-    input[type="color"].color-swatch:hover { border-color: var(--cyan); }
-    .color-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; color: var(--muted); }
 
-    /* Font grid */
-    .font-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-    .font-item { display:flex; flex-direction:column; gap:4px; }
-    .font-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px; color: var(--muted); }
+    /* Color grid */
+    .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .color-item { display:flex; align-items:center; gap:10px; padding: 6px 8px; border-radius: var(--radius); }
+    .color-item:hover { background: var(--btn-hover-bg); }
+    input[type="color"].color-swatch {
+      width: 34px; height: 34px; border: 1px solid var(--input-border); border-radius: var(--radius);
+      cursor: pointer; padding: 2px; background: none; flex-shrink: 0;
+    }
+    input[type="color"].color-swatch:hover { border-color: var(--border-accent); }
+    .color-name { font-family: var(--font-body); font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.2; }
+    .color-desc { font-family: var(--font-mono); font-size: 8px; color: var(--muted); letter-spacing: 0.3px; margin-top: 2px; }
+
+    /* Font section */
+    .font-block { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+    .font-block-label {
+      font-family: var(--font-mono); font-size: 8px; letter-spacing: 3px;
+      color: var(--border-accent); text-transform: uppercase; opacity: 0.8;
+    }
+    .font-block-desc { font-family: var(--font-mono); font-size: 9px; color: var(--muted); margin-bottom: 2px; }
     .font-input {
       font-family: var(--font-mono); font-size: 11px;
-      background: var(--bg-3); color: var(--text);
-      border: 1px solid rgba(0,245,255,0.15); border-radius: 3px;
-      padding: 6px 10px; outline: none;
+      background: var(--input-bg); color: var(--text);
+      border: 1px solid var(--input-border); border-radius: var(--radius);
+      padding: 6px 10px; outline: none; width: 100%; max-width: 360px;
     }
-    .font-input:focus { border-color: var(--cyan); }
+    .font-input:focus { border-color: var(--border-accent); }
+    .font-preview {
+      font-size: 16px; color: var(--text); opacity: 0.7;
+      padding: 8px 10px; background: var(--input-bg); border-radius: var(--radius);
+      border: 1px solid var(--border-color); overflow: hidden; white-space: nowrap;
+      text-overflow: ellipsis;
+    }
 
     /* Size grid */
-    .size-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
-    .size-item { display:flex; flex-direction:column; gap:4px; }
-    .size-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+    .size-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+    .size-item { display: flex; flex-direction: column; gap: 3px; padding: 6px 8px; border-radius: var(--radius); }
+    .size-item:hover { background: var(--btn-hover-bg); }
+    .size-name { font-family: var(--font-body); font-size: 12px; font-weight: 600; color: var(--text); }
+    .size-desc { font-family: var(--font-mono); font-size: 8px; color: var(--muted); letter-spacing: 0.3px; }
+    .size-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
     .size-input {
-      font-family: var(--font-mono); font-size: 12px; width: 80px;
-      background: var(--bg-3); color: var(--text);
-      border: 1px solid rgba(0,245,255,0.15); border-radius: 3px;
-      padding: 5px 8px; outline: none;
+      font-family: var(--font-mono); font-size: 12px; width: 70px;
+      background: var(--input-bg); color: var(--text);
+      border: 1px solid var(--input-border); border-radius: var(--radius);
+      padding: 4px 8px; outline: none; text-align: right;
     }
-    .size-input:focus { border-color: var(--cyan); }
+    .size-input:focus { border-color: var(--border-accent); }
+    .size-unit { font-family: var(--font-mono); font-size: 9px; color: var(--muted); }
 
     /* No-issues / empty state */
     .empty-state { padding: 60px; text-align: center; color: var(--muted); }
@@ -1158,28 +1205,22 @@
         </div>
 
         <div class="section-header">
-          <div class="section-title">Colors</div>
+          <div class="section-title">Colour Palette</div>
           <div class="section-line"></div>
         </div>
-        <div class="card-wide" style="margin-bottom:16px">
-          <div class="color-grid" id="theme-color-grid"></div>
-        </div>
+        <div class="card-wide" style="margin-bottom:16px" id="theme-color-grid"></div>
 
         <div class="section-header">
-          <div class="section-title">Fonts</div>
+          <div class="section-title">Typography</div>
           <div class="section-line"></div>
         </div>
-        <div class="card-wide" style="margin-bottom:16px">
-          <div class="font-grid" id="theme-font-grid"></div>
-        </div>
+        <div class="card-wide" style="margin-bottom:16px" id="theme-font-grid"></div>
 
         <div class="section-header">
-          <div class="section-title">Sizes &amp; Spacing</div>
+          <div class="section-title">Layout &amp; Spacing</div>
           <div class="section-line"></div>
         </div>
-        <div class="card-wide">
-          <div class="size-grid" id="theme-size-grid"></div>
-        </div>
+        <div class="card-wide" id="theme-size-grid"></div>
       </div>
     </div>
 
@@ -1936,23 +1977,54 @@ async function mbRefreshList() {
 
 /* ══════════════════════════════════ THEME MANAGER ══ */
 const COLOR_CSS = {
-  bg_primary:'--bg-0', bg_secondary:'--bg-1', bg_surface:'--bg-2', bg_elevated:'--bg-3',
-  accent_cyan:'--cyan', accent_magenta:'--pink', accent_yellow:'--yellow',
-  text_primary:'--text', text_secondary:'--muted', text_disabled:'--dim',
-  success:'--green', error:'--red',
+  bg_primary:            '--bg-0',
+  bg_secondary:          '--bg-1',
+  bg_surface:            '--bg-2',
+  bg_elevated:           '--bg-3',
+  accent_cyan:           '--cyan',
+  accent_magenta:        '--pink',
+  accent_yellow:         '--yellow',
+  text_primary:          '--text',
+  text_secondary:        '--muted',
+  text_disabled:         '--dim',
+  text_on_accent:        '--text-on-accent',
+  success:               '--green',
+  warning:               '--warning',
+  error:                 '--red',
+  border:                '--border-color',
+  border_accent:         '--border-accent',
+  sidebar_bg:            '--sidebar-bg',
+  sidebar_active_bg:     '--sidebar-active-bg',
+  sidebar_active_border: '--sidebar-active-border',
+  topbar_bg:             '--topbar-bg',
+  button_bg:             '--btn-bg',
+  button_hover_bg:       '--btn-hover-bg',
+  button_primary_bg:     '--btn-primary-bg',
+  button_primary_text:   '--btn-primary-text',
+  table_header_bg:       '--table-header-bg',
+  table_row_alt:         '--table-row-alt',
+  input_bg:              '--input-bg',
+  input_border:          '--input-border',
+  scrollbar_bg:          '--scrollbar-bg',
+  scrollbar_handle:      '--scrollbar-handle',
+  waveform_a:            '--waveform-a',
+  waveform_b:            '--waveform-b',
 };
 const FONT_CSS = { display:'--font-display', body:'--font-body', mono:'--font-mono' };
 const SIZE_CSS = {
-  font_title:   '--fs-title',
-  font_heading: '--fs-heading',
-  font_body:    '--fs-body',
-  font_small:   '--fs-small',
-  font_mono:    '--fs-mono',
-  font_nav:     '--fs-nav',
-  sidebar_width:'--sidebar-width',
-  topbar_height:'--topbar-height',
-  border_radius:'--radius',
-  border_radius_lg:'--radius-lg',
+  font_title:       '--fs-title',
+  font_heading:     '--fs-heading',
+  font_body:        '--fs-body',
+  font_small:       '--fs-small',
+  font_mono:        '--fs-mono',
+  font_nav:         '--fs-nav',
+  sidebar_width:    '--sidebar-width',
+  topbar_height:    '--topbar-height',
+  border_radius:    '--radius',
+  border_radius_lg: '--radius-lg',
+  padding_sm:       '--pad-sm',
+  padding_md:       '--pad-md',
+  padding_lg:       '--pad-lg',
 };
 
 function themeApplyAll(t) {
@@ -1961,6 +2033,20 @@ function themeApplyAll(t) {
   Object.entries(t.fonts   || {}).forEach(([k,v]) => { const c = FONT_CSS[k];  if (c) root.style.setProperty(c, `'${v}', monospace`); });
   Object.entries(t.sizes   || {}).forEach(([k,v]) => { const c = SIZE_CSS[k];  if (c) root.style.setProperty(c, v + 'px'); });
   Object.entries(t.spacing || {}).forEach(([k,v]) => { const c = SIZE_CSS[k];  if (c) root.style.setProperty(c, v + 'px'); });
+  // Keep legacy shorthand aliases in sync
+  const col = t.colors || {};
+  if (col.bg_primary)   root.style.setProperty('--bg-0', col.bg_primary);
+  if (col.bg_secondary) root.style.setProperty('--bg-1', col.bg_secondary);
+  if (col.bg_surface)   root.style.setProperty('--bg-2', col.bg_surface);
+  if (col.bg_elevated)  root.style.setProperty('--bg-3', col.bg_elevated);
+  if (col.accent_cyan)  root.style.setProperty('--cyan',  col.accent_cyan);
+  if (col.accent_magenta) root.style.setProperty('--pink', col.accent_magenta);
+  if (col.accent_yellow)  root.style.setProperty('--yellow', col.accent_yellow);
+  if (col.text_primary)   root.style.setProperty('--text', col.text_primary);
+  if (col.text_secondary) root.style.setProperty('--muted', col.text_secondary);
+  if (col.text_disabled)  root.style.setProperty('--dim',  col.text_disabled);
+  if (col.success) root.style.setProperty('--green', col.success);
+  if (col.error)   root.style.setProperty('--red',   col.error);
 }
 
 let _theme = null;
@@ -1987,44 +2073,156 @@ async function themeReload() {
   await themeLoad(name);
 }
 
+const COLOR_GROUPS = [
+  { label: 'Backgrounds', items: [
+    { key:'bg_primary',    name:'Primary',       desc:'Main app background' },
+    { key:'bg_secondary',  name:'Secondary',     desc:'Sidebar, topbar' },
+    { key:'bg_surface',    name:'Surface',       desc:'Cards, panels' },
+    { key:'bg_elevated',   name:'Elevated',      desc:'Modals, dropdowns' },
+  ]},
+  { label: 'Text', items: [
+    { key:'text_primary',    name:'Primary',     desc:'Main body text' },
+    { key:'text_secondary',  name:'Secondary',   desc:'Labels, subtitles' },
+    { key:'text_disabled',   name:'Disabled',    desc:'Placeholder, dim text' },
+    { key:'text_on_accent',  name:'On Accent',   desc:'Text on primary buttons' },
+  ]},
+  { label: 'Accents', items: [
+    { key:'accent_cyan',     name:'Primary',     desc:'Active states, highlights' },
+    { key:'accent_magenta',  name:'Secondary',   desc:'Alt highlights' },
+    { key:'accent_yellow',   name:'Tertiary',    desc:'Warnings, labels' },
+  ]},
+  { label: 'Status', items: [
+    { key:'success', name:'Success', desc:'Healthy / OK' },
+    { key:'warning', name:'Warning', desc:'Caution' },
+    { key:'error',   name:'Error',   desc:'Failure / missing' },
+  ]},
+  { label: 'Navigation', items: [
+    { key:'sidebar_bg',            name:'Sidebar',        desc:'Nav sidebar fill' },
+    { key:'sidebar_active_bg',     name:'Active Row',     desc:'Selected nav item' },
+    { key:'sidebar_active_border', name:'Active Marker',  desc:'Left-edge indicator' },
+    { key:'topbar_bg',             name:'Topbar',         desc:'Top toolbar strip' },
+  ]},
+  { label: 'Buttons', items: [
+    { key:'button_bg',            name:'Default',       desc:'Secondary button fill' },
+    { key:'button_hover_bg',      name:'Hover',         desc:'Button hover state' },
+    { key:'button_primary_bg',    name:'Primary Fill',  desc:'Primary button background' },
+    { key:'button_primary_text',  name:'Primary Text',  desc:'Text on primary button' },
+  ]},
+  { label: 'Data & Inputs', items: [
+    { key:'table_header_bg', name:'Table Header',   desc:'Column header row' },
+    { key:'table_row_alt',   name:'Alternate Row',  desc:'Zebra striping' },
+    { key:'input_bg',        name:'Input Fill',     desc:'Text field background' },
+    { key:'input_border',    name:'Input Border',   desc:'Text field outline' },
+    { key:'border',          name:'Border',         desc:'Dividers, card edges' },
+    { key:'border_accent',   name:'Accent Border',  desc:'Focus rings, highlights' },
+  ]},
+  { label: 'Scrollbar', items: [
+    { key:'scrollbar_bg',     name:'Track',  desc:'Scrollbar background' },
+    { key:'scrollbar_handle', name:'Handle', desc:'Drag handle fill' },
+  ]},
+  { label: 'Waveform', items: [
+    { key:'waveform_a', name:'Channel A', desc:'Primary wave colour' },
+    { key:'waveform_b', name:'Channel B', desc:'Alternate wave colour' },
+  ]},
+];
+
+const FONT_DEFS = [
+  { key:'display', label:'Display Font',    desc:'Panel headings, logo, section titles',    preview:'ENGINE DJ TOOLS' },
+  { key:'body',    label:'Body Font',       desc:'Navigation, track lists, general text',   preview:'Tracks · Collections · Library' },
+  { key:'mono',    label:'Monospace Font',  desc:'BPM, key, file paths, metadata labels',  preview:'128.0 BPM · 8B · /Music/Track.flac' },
+];
+
+const SIZE_DEFS = {
+  sizes: [
+    { key:'font_title',   name:'Title',    desc:'Panel headings' },
+    { key:'font_heading', name:'Heading',  desc:'Section headers' },
+    { key:'font_body',    name:'Body',     desc:'Track lists, tables' },
+    { key:'font_small',   name:'Small',    desc:'Metadata labels' },
+    { key:'font_mono',    name:'Mono',     desc:'BPM, key, paths' },
+    { key:'font_nav',     name:'Nav',      desc:'Sidebar navigation' },
+  ],
+  spacing: [
+    { key:'sidebar_width',    name:'Sidebar Width',    desc:'px — navigation panel' },
+    { key:'topbar_height',    name:'Topbar Height',    desc:'px — top strip' },
+    { key:'border_radius',    name:'Corner Radius',    desc:'px — small elements' },
+    { key:'border_radius_lg', name:'Corner Radius LG', desc:'px — cards, modals' },
+    { key:'padding_sm',       name:'Padding Small',    desc:'px' },
+    { key:'padding_md',       name:'Padding Medium',   desc:'px' },
+    { key:'padding_lg',       name:'Padding Large',    desc:'px' },
+  ],
+};
+
 function themeRender(t) {
-  /* colors */
+  const col = t.colors || {};
+
+  /* ── colours ── */
   const cg = document.getElementById('theme-color-grid');
-  cg.innerHTML = '';
-  Object.entries(t.colors || {}).forEach(([key, val]) => {
-    const d = document.createElement('div');
-    d.className = 'color-item';
-    d.innerHTML = `<input type="color" class="color-swatch" id="tc-${key}" value="${val}"
-                          oninput="themeColorChange('${key}',this.value)">
-                   <div class="color-label">${key.replace(/_/g,' ').toUpperCase()}</div>`;
-    cg.appendChild(d);
+  let cHtml = '';
+  COLOR_GROUPS.forEach(grp => {
+    cHtml += `<div class="tm-group">
+      <div class="color-grid">
+        <div class="tm-group-header">${grp.label}</div>`;
+    grp.items.forEach(({key, name, desc}) => {
+      const val = col[key] || '#888888';
+      cHtml += `<div class="color-item">
+        <input type="color" class="color-swatch" id="tc-${key}" value="${val}"
+               oninput="themeColorChange('${key}',this.value)">
+        <div><div class="color-name">${name}</div><div class="color-desc">${desc}</div></div>
+      </div>`;
+    });
+    cHtml += '</div></div>';
   });
+  cg.innerHTML = cHtml;
 
-  /* fonts */
+  /* ── fonts ── */
   const fg = document.getElementById('theme-font-grid');
-  fg.innerHTML = '';
-  Object.entries(t.fonts || {}).filter(([k]) => FONT_CSS[k]).forEach(([key, val]) => {
-    const d = document.createElement('div');
-    d.className = 'font-item';
-    d.innerHTML = `<div class="font-label">${key.toUpperCase()} FONT</div>
-                   <input class="font-input" id="tf-${key}" value="${escHtml(val)}"
-                          oninput="themeFontChange('${key}',this.value)"
-                          style="font-family:'${escHtml(val)}',monospace">`;
-    fg.appendChild(d);
+  let fHtml = '';
+  FONT_DEFS.forEach(({key, label, desc, preview}) => {
+    const val = (t.fonts || {})[key] || '';
+    fHtml += `<div class="font-block">
+      <div class="font-block-label">${label}</div>
+      <div class="font-block-desc">${desc}</div>
+      <input class="font-input" id="tf-${key}" value="${escHtml(val)}"
+             oninput="themeFontChange('${key}',this.value)">
+      <div class="font-preview" id="tfp-${key}" style="font-family:'${escHtml(val)}',sans-serif">${preview}</div>
+    </div>`;
   });
 
-  /* sizes + spacing */
-  const sg = document.getElementById('theme-size-grid');
-  sg.innerHTML = '';
-  const all = {...(t.sizes||{}), ...(t.spacing||{})};
-  Object.entries(all).forEach(([key, val]) => {
-    const d = document.createElement('div');
-    d.className = 'size-item';
-    d.innerHTML = `<div class="size-label">${key.replace(/_/g,' ').toUpperCase()}</div>
-                   <input type="number" class="size-input" id="ts-${key}" value="${val}"
-                          oninput="themeSizeChange('${key}',this.value)">`;
-    sg.appendChild(d);
+  /* font sizes sub-section */
+  fHtml += `<div style="height:1px;background:var(--border-color);margin:8px 0 16px"></div>
+    <div style="font-family:var(--font-mono);font-size:8px;letter-spacing:3px;color:var(--border-accent);opacity:.8;margin-bottom:10px">FONT SIZES (px)</div>
+    <div class="size-grid">`;
+  SIZE_DEFS.sizes.forEach(({key, name, desc}) => {
+    const val = (t.sizes || {})[key] ?? '';
+    fHtml += `<div class="size-item">
+      <div class="size-name">${name}</div>
+      <div class="size-desc">${desc}</div>
+      <div class="size-row">
+        <input type="number" class="size-input" id="ts-${key}" value="${val}"
+               oninput="themeSizeChange('${key}',this.value)" min="6" max="48">
+        <span class="size-unit">px</span>
+      </div>
+    </div>`;
   });
+  fHtml += '</div>';
+  fg.innerHTML = fHtml;
+
+  /* ── layout / spacing ── */
+  const sg = document.getElementById('theme-size-grid');
+  let sHtml = '<div class="size-grid">';
+  SIZE_DEFS.spacing.forEach(({key, name, desc}) => {
+    const val = (t.spacing || {})[key] ?? '';
+    sHtml += `<div class="size-item">
+      <div class="size-name">${name}</div>
+      <div class="size-desc">${desc}</div>
+      <div class="size-row">
+        <input type="number" class="size-input" id="ts-${key}" value="${val}"
+               oninput="themeSizeChange('${key}',this.value)" min="0" max="600">
+        <span class="size-unit">px</span>
+      </div>
+    </div>`;
+  });
+  sg.innerHTML = sHtml + '</div>';
 }
 
 function themeColorChange(key, val) {
@@ -2036,9 +2234,9 @@ function themeColorChange(key, val) {
 function themeFontChange(key, val) {
   if (_theme) _theme.fonts[key] = val;
   const cssVar = FONT_CSS[key];
-  if (cssVar) document.documentElement.style.setProperty(cssVar, `'${val}', monospace`);
-  const inp = document.getElementById('tf-' + key);
-  if (inp) inp.style.fontFamily = `'${val}', monospace`;
+  if (cssVar) document.documentElement.style.setProperty(cssVar, `'${val}', sans-serif`);
+  const preview = document.getElementById('tfp-' + key);
+  if (preview) preview.style.fontFamily = `'${val}', sans-serif`;
 }
 
 function themeSizeChange(key, val) {
