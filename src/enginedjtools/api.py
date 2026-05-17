@@ -703,18 +703,22 @@ class Api:
         except sqlite3.Error:
             return []
 
-    def get_track_tree(self) -> list[dict[str, Any]]:
-        """Return label→album groups for tracks not assigned to any collection."""
+    def get_track_tree(self, uncollected_only: bool = False) -> list[dict[str, Any]]:
+        """Return label→album groups. If uncollected_only, exclude tracks in any collection."""
         if not self._library:
             return []
         try:
             with sqlite3.connect(str(self._library.m_db)) as conn:
-                rows = conn.execute("""
+                where = (
+                    "WHERE t.id NOT IN (SELECT DISTINCT trackId FROM PlaylistEntity)"
+                    if uncollected_only else ""
+                )
+                rows = conn.execute(f"""
                     SELECT COALESCE(t.label, '') AS label,
                            COALESCE(t.album, '') AS album,
                            COUNT(*) AS count
                     FROM Track t
-                    WHERE t.id NOT IN (SELECT DISTINCT trackId FROM PlaylistEntity)
+                    {where}
                     GROUP BY label, album
                     ORDER BY label COLLATE NOCASE, album COLLATE NOCASE
                 """).fetchall()
@@ -722,25 +726,49 @@ class Api:
         except sqlite3.Error:
             return []
 
-    def get_tracks_in_group(self, label: str, album: str) -> list[dict[str, Any]]:
-        """Return tracks for a specific label+album that are not in any collection."""
+    def get_tracks_in_group(self, label: str, album: str, uncollected_only: bool = False) -> list[dict[str, Any]]:
+        """Return tracks for a label+album group. If uncollected_only, exclude tracks in any collection."""
         if not self._library:
             return []
         try:
             with sqlite3.connect(str(self._library.m_db)) as conn:
                 conn.row_factory = sqlite3.Row
-                rows = conn.execute("""
+                extra = (
+                    "AND t.id NOT IN (SELECT DISTINCT trackId FROM PlaylistEntity)"
+                    if uncollected_only else ""
+                )
+                rows = conn.execute(f"""
                     SELECT t.id, t.title, t.artist, t.album,
                            COALESCE(t.bpm, t.bpmAnalyzed) AS bpm,
                            t.key, t.length, t.isAnalyzed, t.rating,
                            t.fileType, t.path, t.albumArtId
                     FROM Track t
-                    WHERE t.id NOT IN (SELECT DISTINCT trackId FROM PlaylistEntity)
-                      AND COALESCE(t.label, '') = ?
+                    WHERE COALESCE(t.label, '') = ?
                       AND COALESCE(t.album, '') = ?
+                      {extra}
                     ORDER BY t.artist, t.title
                 """, (label, album)).fetchall()
             return [dict(r) for r in rows]
+        except sqlite3.Error:
+            return []
+
+    def get_collections_for_track(self, track_id: int) -> list[dict[str, Any]]:
+        """Return all collections with a 'member' flag showing if the track belongs to each."""
+        if not self._library:
+            return []
+        try:
+            with sqlite3.connect(str(self._library.m_db)) as conn:
+                rows = conn.execute("""
+                    SELECT p.id, p.title, p.parentListId,
+                           EXISTS(
+                               SELECT 1 FROM PlaylistEntity pe
+                               WHERE pe.listId = p.id AND pe.trackId = ?
+                           ) AS member
+                    FROM Playlist p
+                    ORDER BY p.title COLLATE NOCASE
+                """, (track_id,)).fetchall()
+            return [{"id": r[0], "title": r[1], "parentListId": r[2], "member": bool(r[3])}
+                    for r in rows]
         except sqlite3.Error:
             return []
 

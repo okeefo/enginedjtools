@@ -959,13 +959,19 @@
           <div class="section-line"></div>
         </div>
         <div id="trk-warn-bar" class="alert alert-warn" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-          <span>♫ <strong>Library tracks:</strong> All tracks not assigned to any collection, grouped by label and album. Double-click or right-click to play.</span>
+          <span>♫ <strong>Library tracks:</strong> All tracks, grouped by label and album. Toggle <strong>UNCOLLECTED ONLY</strong> to hide tracks already in a collection.</span>
           <button onclick="trkDismissWarn()" title="Dismiss" style="background:none;border:none;color:inherit;cursor:pointer;font-size:16px;line-height:1;padding:0 2px;opacity:.65;flex-shrink:0">✕</button>
         </div>
         <div style="display:flex;gap:12px;min-height:400px;max-height:560px">
           <!-- Left: label → album tree -->
           <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
-            <div style="font-family:var(--font-mono);font-size:var(--fs-small);color:var(--muted);letter-spacing:.08em">LIBRARY</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-family:var(--font-mono);font-size:var(--fs-small);color:var(--muted);letter-spacing:.08em;flex:1">LIBRARY</div>
+              <button id="trk-all-btn" onclick="trkSetFilter(false)"
+                style="font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;padding:3px 8px;border-radius:10px;border:1px solid rgba(0,245,255,.5);background:rgba(0,245,255,.15);color:var(--cyan);cursor:pointer">ALL</button>
+              <button id="trk-uncol-btn" onclick="trkSetFilter(true)"
+                style="font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;padding:3px 8px;border-radius:10px;border:1px solid var(--dim);background:transparent;color:var(--muted);cursor:pointer">UNCOLLECTED</button>
+            </div>
             <input id="trk-search" type="text" placeholder="Filter…"
               oninput="trkFilterTree(this.value)"
               style="background:var(--bg-2);border:1px solid var(--dim);color:var(--text);padding:6px 10px;font-family:var(--font-body);font-size:var(--fs-body);border-radius:var(--radius);outline:none">
@@ -2025,6 +2031,7 @@ let _colTrackFilter = '';
 let _colExpanded = new Set();
 let _colTrackMap = {};     // id → track object for context menu / player
 let _ctxTrackId = null;    // track targeted by current context menu
+let _ctxPanel   = null;    // 'collections' or 'tracks'
 let _playerSamples = [];   // waveform samples for current player track
 
 async function loadCollections() {
@@ -2140,8 +2147,7 @@ function colRenderTracks(tracks) {
     return;
   }
 
-  // Build lookup for context menu / player
-  _colTrackMap = {};
+  // Build lookup for context menu / player — merge, don't reset (other panel may have entries)
   tracks.forEach(t => _colTrackMap[t.id] = t);
 
   const fmtBpm = b => (b && b > 0) ? parseFloat(b).toFixed(1) : '—';
@@ -2170,7 +2176,7 @@ function colRenderTracks(tracks) {
       <tr data-id="${t.id}" style="border-top:1px solid rgba(58,58,92,.4);cursor:default"
         onmouseover="this.style.background='rgba(0,245,255,0.04)'" onmouseout="this.style.background=''"
         ondblclick="colOpenPlayer(${t.id})"
-        oncontextmenu="colContextMenu(event,${t.id})">
+        oncontextmenu="colContextMenu(event,${t.id},'collections')">
         <td style="padding:6px 10px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(t.title||'').replace(/"/g,'&quot;')}">${t.title||'—'}</td>
         <td style="padding:6px 8px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.artist||'—'}</td>
         <td style="padding:6px 6px;color:var(--cyan);text-align:right;font-family:var(--font-mono);font-size:11px">${fmtBpm(t.bpm)}</td>
@@ -2272,20 +2278,26 @@ function colKeyCam(k)  { return (k != null && k >= 0 && k < COL_KEY_MAP.length) 
 
 // ══ CONTEXT MENU ══════════════════════════════════════════════════════════════
 
-function colContextMenu(e, trackId) {
+function colContextMenu(e, trackId, panel) {
   e.preventDefault();
   _ctxTrackId = trackId;
+  _ctxPanel   = panel || null;
+  // Show "Remove from collection" only when in the collections panel and a collection is selected
+  const removeItem = document.getElementById('ctx-remove-item');
+  if (removeItem) {
+    removeItem.style.display = (panel === 'collections' && _colSelectedId) ? '' : 'none';
+  }
   const menu = document.getElementById('col-ctx-menu');
   menu.style.display = 'block';
   let left = e.clientX, top = e.clientY;
-  if (left + 180 > window.innerWidth)  left = window.innerWidth  - 184;
-  if (top  + 140 > window.innerHeight) top  = window.innerHeight - 144;
+  if (left + 200 > window.innerWidth)  left = window.innerWidth  - 204;
+  if (top  + 180 > window.innerHeight) top  = window.innerHeight - 184;
   menu.style.left = left + 'px';
   menu.style.top  = top  + 'px';
 }
 function colCtxDismiss() { document.getElementById('col-ctx-menu').style.display = 'none'; }
 document.addEventListener('click',   () => colCtxDismiss());
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { colCtxDismiss(); colCloseInfo(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { colCtxDismiss(); colCloseInfo(); colPickerClose(); } });
 
 function colDismissWarn() {
   const el = document.getElementById('col-warn-bar');
@@ -2303,6 +2315,133 @@ function colCtxStop() {
   colCtxDismiss();
   const a = document.getElementById('player-audio');
   if (a) { a.pause(); a.currentTime = 0; }
+}
+async function colCtxAddToCollection() {
+  colCtxDismiss();
+  if (_ctxTrackId != null) await colPickerOpen(_ctxTrackId);
+}
+async function colCtxRemoveFromCollection() {
+  colCtxDismiss();
+  if (_ctxTrackId == null || !_colSelectedId) return;
+  const r = await pywebview.api.remove_track_from_collection(_colSelectedId, _ctxTrackId);
+  if (r.ok) {
+    _colTracksAll = _colTracksAll.filter(t => t.id !== _ctxTrackId);
+    const heading = document.getElementById('col-track-heading');
+    if (heading) {
+      const parts = heading.textContent.split('·');
+      heading.textContent = `${parts[0].trim()}  ·  ${_colTracksAll.length} TRACKS`;
+    }
+    colFilterTracks(_colTrackFilter);
+  }
+}
+
+// ══ COLLECTION PICKER ═════════════════════════════════════════════════════════
+
+let _pickerTrackId = null;
+let _pickerColls   = [];   // [{id, title, parentListId, member}]
+
+async function colPickerOpen(trackId) {
+  _pickerTrackId = trackId;
+  const modal = document.getElementById('col-picker-modal');
+  modal.classList.add('open');
+  document.getElementById('col-picker-search').value = '';
+  document.getElementById('col-picker-list').innerHTML =
+    '<div style="padding:16px;color:var(--muted);font-family:var(--font-mono);font-size:11px">Loading…</div>';
+
+  const track = _colTrackMap[trackId];
+  document.getElementById('col-picker-trackname').textContent =
+    track ? `${track.title || '—'}${track.artist ? '  —  ' + track.artist : ''}` : `Track #${trackId}`;
+
+  _pickerColls = await pywebview.api.get_collections_for_track(trackId);
+  colPickerRender(_pickerColls);
+}
+
+function colPickerClose() {
+  document.getElementById('col-picker-modal').classList.remove('open');
+  _pickerTrackId = null;
+}
+
+function colPickerFilter(q) {
+  const lq = q.trim().toLowerCase();
+  const filtered = lq ? _pickerColls.filter(c => c.title.toLowerCase().includes(lq)) : _pickerColls;
+  colPickerRender(filtered);
+}
+
+function colPickerRender(colls) {
+  const el = document.getElementById('col-picker-list');
+  if (!colls.length) {
+    el.innerHTML = '<div style="padding:16px;color:var(--dim);font-family:var(--font-mono);font-size:11px">No collections found.</div>';
+    return;
+  }
+
+  // Build depth map from full _pickerColls for indenting
+  const depthMap = {};
+  const computeDepth = (id, visited = new Set()) => {
+    if (depthMap[id] !== undefined) return depthMap[id];
+    if (visited.has(id)) return 0;
+    visited.add(id);
+    const col = _pickerColls.find(c => c.id === id);
+    if (!col || !col.parentListId) return (depthMap[id] = 0);
+    return (depthMap[id] = 1 + computeDepth(col.parentListId, visited));
+  };
+  _pickerColls.forEach(c => computeDepth(c.id));
+
+  el.innerHTML = colls.map(c => {
+    const depth   = Math.min(depthMap[c.id] || 0, 4);
+    const indent  = depth * 16;
+    const checked = c.member;
+    const bg      = checked ? 'rgba(0,255,136,.07)' : '';
+    const color   = checked ? 'var(--green)' : 'var(--text)';
+    const icon    = checked ? '☑' : '☐';
+    return `<div data-cid="${c.id}" onclick="colPickerToggle(${c.id})"
+      style="display:flex;align-items:center;gap:10px;padding:7px 14px 7px ${14+indent}px;
+        cursor:pointer;background:${bg};border-bottom:1px solid rgba(58,58,92,.25);
+        font-family:var(--font-body);font-size:13px;color:${color}"
+      onmouseover="this.style.background='rgba(0,245,255,0.06)'"
+      onmouseout="this.style.background='${bg}'">
+      <span style="font-size:16px;line-height:1;color:${checked ? 'var(--green)' : 'var(--dim)'}">${icon}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.title}</span>
+      ${depth > 0 ? `<span style="font-size:9px;color:var(--dim);font-family:var(--font-mono)">L${depth}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function colPickerToggle(collId) {
+  if (_pickerTrackId == null) return;
+  const idx = _pickerColls.findIndex(c => c.id === collId);
+  if (idx < 0) return;
+
+  const wasMember = _pickerColls[idx].member;
+  let result;
+  if (wasMember) {
+    result = await pywebview.api.remove_track_from_collection(collId, _pickerTrackId);
+  } else {
+    result = await pywebview.api.add_track_to_collection(collId, _pickerTrackId);
+  }
+
+  if (result && result.ok !== false) {
+    _pickerColls[idx].member = !wasMember;
+    colPickerFilter(document.getElementById('col-picker-search').value);
+
+    // If the changed collection is currently displayed in the Collections panel, refresh it
+    if (collId === _colSelectedId) {
+      const tracks = await pywebview.api.get_collection_tracks(_colSelectedId);
+      _colTracksAll = tracks;
+      const heading = document.getElementById('col-track-heading');
+      if (heading) {
+        const parts = heading.textContent.split('·');
+        heading.textContent = `${parts[0].trim()}  ·  ${_colTracksAll.length} TRACKS`;
+      }
+      colFilterTracks(_colTrackFilter);
+    }
+
+    // If the Tracks panel is visible and uncollected-only is on, refresh it too
+    if (_trkUncollectedOnly && _trkSelLabel !== null) {
+      const tracks = await pywebview.api.get_tracks_in_group(_trkSelLabel, _trkSelAlbum, true);
+      _trkTracksAll = tracks;
+      trkFilterTracks(_trkTrackFilter);
+    }
+  }
 }
 
 // ══ INFO MODAL ════════════════════════════════════════════════════════════════
@@ -2485,25 +2624,53 @@ window.addEventListener('load', () => {
 });
 
 // ══ TRACKS PANEL ═════════════════════════════════════════════════════════════
-// Shows tracks not assigned to any collection, grouped by label → album.
+// Shows all tracks (or uncollected-only when toggled), grouped by label → album.
 // Mirrors the Collections panel exactly — same player, context menu, row ops.
 
-let _trkGroups   = [];      // [{label, album, count}]
-let _trkSelLabel = null;
-let _trkSelAlbum = null;
-let _trkTracksAll  = [];
-let _trkTrackFilter = '';
-let _trkExpanded = new Set();  // expanded label strings
+let _trkGroups         = [];      // [{label, album, count}]
+let _trkSelLabel       = null;
+let _trkSelAlbum       = null;
+let _trkTracksAll      = [];
+let _trkTrackFilter    = '';
+let _trkExpanded       = new Set();  // expanded label strings
+let _trkUncollectedOnly = false;
 
 async function loadTracks() {
   const tree = document.getElementById('trk-tree');
   tree.innerHTML = '<div style="padding:12px 10px;color:var(--dim);font-size:11px">Loading…</div>';
-  _trkGroups = await pywebview.api.get_track_tree();
+  _trkGroups = await pywebview.api.get_track_tree(_trkUncollectedOnly);
   _trkExpanded.clear();
+  _trkSelLabel = null;
+  _trkSelAlbum = null;
   // Auto-expand single label
   const labels = [...new Set(_trkGroups.map(g => g.label))];
   if (labels.length === 1) _trkExpanded.add(labels[0]);
   trkBuildTree('');
+  document.getElementById('trk-track-list').innerHTML =
+    '<div class="empty-state" style="height:100%"><div class="empty-state-msg" style="color:var(--dim)">SELECT A GROUP</div></div>';
+  document.getElementById('trk-track-heading').textContent = 'SELECT A GROUP';
+}
+
+function trkSetFilter(uncollectedOnly) {
+  _trkUncollectedOnly = uncollectedOnly;
+  const allBtn  = document.getElementById('trk-all-btn');
+  const uncolBtn = document.getElementById('trk-uncol-btn');
+  if (uncollectedOnly) {
+    allBtn.style.background   = 'transparent';
+    allBtn.style.color        = 'var(--muted)';
+    allBtn.style.borderColor  = 'var(--dim)';
+    uncolBtn.style.background = 'rgba(0,245,255,.15)';
+    uncolBtn.style.color      = 'var(--cyan)';
+    uncolBtn.style.borderColor = 'rgba(0,245,255,.5)';
+  } else {
+    allBtn.style.background   = 'rgba(0,245,255,.15)';
+    allBtn.style.color        = 'var(--cyan)';
+    allBtn.style.borderColor  = 'rgba(0,245,255,.5)';
+    uncolBtn.style.background = 'transparent';
+    uncolBtn.style.color      = 'var(--muted)';
+    uncolBtn.style.borderColor = 'var(--dim)';
+  }
+  loadTracks();
 }
 
 function trkDismissWarn() {
@@ -2518,7 +2685,8 @@ function trkFilterTree(q) {
 function trkBuildTree(filterText) {
   const el = document.getElementById('trk-tree');
   if (!_trkGroups.length) {
-    el.innerHTML = '<div style="padding:12px 10px;color:var(--dim);font-size:11px">No uncollected tracks found.</div>';
+    const msg = _trkUncollectedOnly ? 'No uncollected tracks found.' : 'No tracks in library.';
+    el.innerHTML = `<div style="padding:12px 10px;color:var(--dim);font-size:11px">${msg}</div>`;
     return;
   }
 
@@ -2594,7 +2762,7 @@ async function trkSelectGroup(label, album) {
   _trkTrackFilter = '';
   trkBuildTree(document.getElementById('trk-search').value.trim().toLowerCase());
 
-  const tracks = await pywebview.api.get_tracks_in_group(label, album);
+  const tracks = await pywebview.api.get_tracks_in_group(label, album, _trkUncollectedOnly);
   _trkTracksAll = tracks;
   heading.textContent = `${displayLabel}  ›  ${displayAlbum}  ·  ${tracks.length} TRACKS`;
   trkRenderTracks(tracks);
@@ -2637,7 +2805,7 @@ function trkRenderTracks(tracks) {
       <tr data-id="${t.id}" style="border-top:1px solid rgba(58,58,92,.4);cursor:default"
         onmouseover="this.style.background='rgba(0,245,255,0.04)'" onmouseout="this.style.background=''"
         ondblclick="colOpenPlayer(${t.id})"
-        oncontextmenu="colContextMenu(event,${t.id})">
+        oncontextmenu="colContextMenu(event,${t.id},'tracks')">
         <td style="padding:6px 10px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(t.title||'').replace(/"/g,'&quot;')}">${t.title||'—'}</td>
         <td style="padding:6px 8px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.artist||'—'}</td>
         <td style="padding:6px 6px;color:var(--cyan);text-align:right;font-family:var(--font-mono);font-size:11px">${fmtBpm(t.bpm)}</td>
@@ -2736,7 +2904,7 @@ function wfDrawNeedle(canvas, progress) {
 </script>
 
 <!-- ── CONTEXT MENU ──────────────────────────────────────────────────────── -->
-<div id="col-ctx-menu" style="display:none;position:fixed;z-index:9500;min-width:168px;
+<div id="col-ctx-menu" style="display:none;position:fixed;z-index:9500;min-width:192px;
   background:#0c0c1c;border:1px solid rgba(0,245,255,.5);border-radius:4px;overflow:hidden;
   font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;
   box-shadow:0 8px 32px rgba(0,0,0,.85),0 0 20px rgba(0,245,255,.08)">
@@ -2745,6 +2913,9 @@ function wfDrawNeedle(canvas, progress) {
   <div style="border-top:1px solid rgba(0,245,255,.18);margin:2px 0"></div>
   <div class="ctx-item" onclick="colCtxPause()">⏸ &nbsp;PAUSE / RESUME</div>
   <div class="ctx-item" onclick="colCtxStop()">⏹ &nbsp;STOP</div>
+  <div style="border-top:1px solid rgba(0,245,255,.18);margin:2px 0"></div>
+  <div class="ctx-item" onclick="colCtxAddToCollection()" style="color:var(--green)">＋ &nbsp;ADD TO COLLECTION…</div>
+  <div id="ctx-remove-item" class="ctx-item" onclick="colCtxRemoveFromCollection()" style="color:var(--red);display:none">✕ &nbsp;REMOVE FROM COLLECTION</div>
 </div>
 
 <!-- ── INFO MODAL ───────────────────────────────────────────────────────── -->
@@ -2771,6 +2942,31 @@ function wfDrawNeedle(canvas, progress) {
 
 <!-- Hidden audio element (always present in DOM) -->
 <audio id="player-audio" preload="none"></audio>
+
+<!-- ── COLLECTION PICKER MODAL ───────────────────────────────────────── -->
+<div id="col-picker-modal" class="modal-overlay" onclick="if(event.target===this)colPickerClose()">
+  <div style="background:#0b0b1a;border:1px solid rgba(0,245,255,.22);border-radius:8px;
+    width:480px;max-height:80vh;display:flex;flex-direction:column;position:relative">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid rgba(0,245,255,.12);flex-shrink:0;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.1em;margin-bottom:2px">MANAGE COLLECTION MEMBERSHIP</div>
+        <div id="col-picker-trackname" style="font-family:var(--font-body);font-size:14px;color:var(--cyan);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
+      <button onclick="colPickerClose()" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:20px;line-height:1;flex-shrink:0">✕</button>
+    </div>
+    <div style="padding:8px 10px;border-bottom:1px solid rgba(0,245,255,.08);flex-shrink:0">
+      <input id="col-picker-search" type="text" placeholder="Filter collections…"
+        oninput="colPickerFilter(this.value)"
+        style="width:100%;background:var(--bg-2);border:1px solid var(--dim);color:var(--text);
+          padding:6px 10px;font-family:var(--font-body);font-size:13px;border-radius:var(--radius);outline:none">
+    </div>
+    <div id="col-picker-list" style="overflow-y:auto;flex:1;padding:6px 0;min-height:120px"></div>
+    <div style="padding:12px 18px;border-top:1px solid rgba(0,245,255,.12);flex-shrink:0;
+      font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.06em">
+      Click a collection to add or remove this track. Changes apply immediately.
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
