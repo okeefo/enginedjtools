@@ -1210,7 +1210,7 @@ new ResizeObserver(([e]) => {
   wfSetBarCount(Math.max(1, Math.floor(w / (WF_BAR_W + WF_GAP))));
 }).observe(wf);
 
-const WF_DENSITY = 16;  // bars per full wave cycle — keeps peak density constant
+const WF_DENSITY = 64;  // bars per full wave cycle — keeps peak density constant
 let phase = 0;
 (function animate() {
   phase += 0.04;
@@ -1221,7 +1221,8 @@ let phase = 0;
             + Math.sin(t * Math.PI * 2 * 4.1 + phase * 0.7) * 0.2;
     const h = Math.max(3, Math.abs(v) * 28);
     b.style.height = h + 'px';
-    const hue = Math.sin(t) > 0 ? 300 : 180;
+    //const hue = Math.sin(t*3) > 0 ? 300 : 180;
+    const hue = Math.sin(t*3) * 60;
     const lit = 50 + Math.abs(v) * 20;
     b.style.background = `hsl(${hue},100%,${lit}%)`;
     b.style.opacity = 0.3 + Math.abs(v) * 0.6;
