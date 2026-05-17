@@ -465,6 +465,13 @@ class Api:
         settings["active_theme"] = name
         _save_settings(settings)
 
+    def save_window_size(self, width: int, height: int) -> None:
+        """Persist the window viewport size so it can be restored on next launch."""
+        settings = _load_settings()
+        settings["window_width"]  = int(width)
+        settings["window_height"] = int(height)
+        _save_settings(settings)
+
     # ── Engine DJ log viewer ──────────────────────────────────────────────────────
 
     def get_engine_log_files(self) -> list[dict[str, Any]]:

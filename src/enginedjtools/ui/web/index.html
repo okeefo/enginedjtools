@@ -235,6 +235,14 @@
     .panel { display: none; flex: 1; overflow-y: auto; padding: 28px; }
     .panel.active { display: block; }
 
+    /* Collections + Tracks panels fill the remaining window height instead of scrolling */
+    #panel-collections.active, #panel-tracks.active {
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    #panel-collections.active > .stagger, #panel-tracks.active > .stagger {
+      flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+    }
+
     .section-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 20px; }
     .section-title {
       font-family: var(--font-display); font-size: var(--fs-heading); font-weight: 700;
@@ -923,7 +931,7 @@
           <button onclick="colDismissWarn()" title="Dismiss" style="background:none;border:none;color:inherit;cursor:pointer;font-size:16px;line-height:1;padding:0 2px;opacity:.65;flex-shrink:0">✕</button>
         </div>
 
-        <div style="display:flex;gap:12px;min-height:400px;max-height:560px">
+        <div style="display:flex;gap:12px;flex:1;min-height:0">
           <!-- Left: collection tree -->
           <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
             <div style="font-family:var(--font-mono);font-size:var(--fs-small);color:var(--muted);letter-spacing:.08em">COLLECTIONS</div>
@@ -962,7 +970,7 @@
           <span>♫ <strong>Library tracks:</strong> All tracks, grouped by label and album. Toggle <strong>UNCOLLECTED ONLY</strong> to hide tracks already in a collection.</span>
           <button onclick="trkDismissWarn()" title="Dismiss" style="background:none;border:none;color:inherit;cursor:pointer;font-size:16px;line-height:1;padding:0 2px;opacity:.65;flex-shrink:0">✕</button>
         </div>
-        <div style="display:flex;gap:12px;min-height:400px;max-height:560px">
+        <div style="display:flex;gap:12px;flex:1;min-height:0">
           <!-- Left: label → album tree -->
           <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
             <div style="display:flex;align-items:center;gap:6px">
@@ -2621,6 +2629,27 @@ window.addEventListener('load', () => {
   cvs.addEventListener('mousedown', e => { dragging = true; seekAt(e); });
   cvs.addEventListener('mousemove', e => { if (dragging) seekAt(e); });
   document.addEventListener('mouseup', () => { dragging = false; });
+
+  // Resize waveform canvas drawing buffer when the strip width changes
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => {
+      if (!cvs || cvs.offsetWidth === 0) return;
+      cvs.width = cvs.offsetWidth;
+      const d = audio.duration || 0, t = audio.currentTime;
+      wfDrawStatic(cvs, _playerSamples);
+      if (d) wfDrawNeedle(cvs, t / d);
+    }).observe(cvs);
+  }
+
+  // Persist window size on resize (debounced — only fires after 800 ms of no resizing)
+  let _resizeSaveTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeSaveTimer);
+    _resizeSaveTimer = setTimeout(() => {
+      if (window.pywebview && window.pywebview.api)
+        pywebview.api.save_window_size(window.innerWidth, window.innerHeight);
+    }, 800);
+  });
 });
 
 // ══ TRACKS PANEL ═════════════════════════════════════════════════════════════
