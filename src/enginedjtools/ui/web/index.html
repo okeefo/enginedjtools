@@ -193,7 +193,7 @@
     nav { flex: 1; padding: 14px 0; overflow-y: auto; }
 
     .nav-section {
-      font-family: var(--font-mono); font-size: 8px; letter-spacing: 3px;
+      font-family: var(--font-mono); font-size: var(--fs-small); letter-spacing: 3px;
       color: var(--dim); padding: 0 20px; margin: 10px 0 4px;
     }
 
@@ -225,7 +225,7 @@
     .sidebar-sep { border-top: 1px solid rgba(0,245,255,0.07); margin: 6px 0; }
     .sidebar-footer {
       padding: 10px 20px 14px; font-family: var(--font-mono);
-      font-size: 8px; color: var(--dim); letter-spacing: 1px;
+      font-size: var(--fs-small); color: var(--dim); letter-spacing: 1px;
     }
     .sidebar-footer span { color: var(--cyan); }
 
@@ -1217,6 +1217,12 @@
         <div class="card-wide" style="margin-bottom:16px" id="theme-font-grid"></div>
 
         <div class="section-header">
+          <div class="section-title">Font Sizes</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="card-wide" style="margin-bottom:16px" id="theme-fontsizes-grid"></div>
+
+        <div class="section-header">
           <div class="section-title">Layout &amp; Spacing</div>
           <div class="section-line"></div>
         </div>
@@ -2134,12 +2140,12 @@ const FONT_DEFS = [
 
 const SIZE_DEFS = {
   sizes: [
-    { key:'font_title',   name:'Title',    desc:'Panel headings' },
-    { key:'font_heading', name:'Heading',  desc:'Section headers' },
-    { key:'font_body',    name:'Body',     desc:'Track lists, tables' },
-    { key:'font_small',   name:'Small',    desc:'Metadata labels' },
-    { key:'font_mono',    name:'Mono',     desc:'BPM, key, paths' },
-    { key:'font_nav',     name:'Nav',      desc:'Sidebar navigation' },
+    { key:'font_title',   name:'Title',    desc:'Main panel title in topbar' },
+    { key:'font_heading', name:'Heading',  desc:'Section headers (Colour Palette, etc.)' },
+    { key:'font_body',    name:'Body',     desc:'Track lists, tables, general text' },
+    { key:'font_small',   name:'Small',    desc:'Sidebar group labels (TOOLS, SYSTEM), metadata headers' },
+    { key:'font_mono',    name:'Mono',     desc:'BPM, key, file paths, data table text' },
+    { key:'font_nav',     name:'Nav',      desc:'Sidebar navigation item labels' },
   ],
   spacing: [
     { key:'sidebar_width',    name:'Sidebar Width',    desc:'px — navigation panel' },
@@ -2174,7 +2180,7 @@ function themeRender(t) {
   });
   cg.innerHTML = cHtml;
 
-  /* ── fonts ── */
+  /* ── font faces ── */
   const fg = document.getElementById('theme-font-grid');
   let fHtml = '';
   FONT_DEFS.forEach(({key, label, desc, preview}) => {
@@ -2187,14 +2193,14 @@ function themeRender(t) {
       <div class="font-preview" id="tfp-${key}" style="font-family:'${escHtml(val)}',sans-serif">${preview}</div>
     </div>`;
   });
+  fg.innerHTML = fHtml;
 
-  /* font sizes sub-section */
-  fHtml += `<div style="height:1px;background:var(--border-color);margin:8px 0 16px"></div>
-    <div style="font-family:var(--font-mono);font-size:8px;letter-spacing:3px;color:var(--border-accent);opacity:.8;margin-bottom:10px">FONT SIZES (px)</div>
-    <div class="size-grid">`;
+  /* ── font sizes ── */
+  const fsg = document.getElementById('theme-fontsizes-grid');
+  let fsHtml = '<div class="size-grid">';
   SIZE_DEFS.sizes.forEach(({key, name, desc}) => {
     const val = (t.sizes || {})[key] ?? '';
-    fHtml += `<div class="size-item">
+    fsHtml += `<div class="size-item">
       <div class="size-name">${name}</div>
       <div class="size-desc">${desc}</div>
       <div class="size-row">
@@ -2204,8 +2210,7 @@ function themeRender(t) {
       </div>
     </div>`;
   });
-  fHtml += '</div>';
-  fg.innerHTML = fHtml;
+  fsg.innerHTML = fsHtml + '</div>';
 
   /* ── layout / spacing ── */
   const sg = document.getElementById('theme-size-grid');
