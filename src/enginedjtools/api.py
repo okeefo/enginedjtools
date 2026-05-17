@@ -394,9 +394,21 @@ class Api:
             return {"error": "No library selected"}
         try:
             with sqlite3.connect(str(self._library.m_db)) as conn:
-                track_count = conn.execute("SELECT COUNT(*) FROM Track").fetchone()[0]
-                bpm_count   = conn.execute("SELECT COUNT(*) FROM Track WHERE bpm > 0").fetchone()[0]
-                year_count  = conn.execute("SELECT COUNT(*) FROM Track WHERE year IS NOT NULL AND year > 0").fetchone()[0]
+                track_count    = conn.execute("SELECT COUNT(*) FROM Track").fetchone()[0]
+                bpm_count      = conn.execute(
+                    "SELECT COUNT(*) FROM Track WHERE COALESCE(bpm, bpmAnalyzed) > 0"
+                ).fetchone()[0]
+                no_bpm_count   = track_count - bpm_count
+                key_count      = conn.execute(
+                    "SELECT COUNT(*) FROM Track WHERE key IS NOT NULL AND key >= 0 AND key <= 23"
+                ).fetchone()[0]
+                no_key_count   = track_count - key_count
+                waveform_count = conn.execute(
+                    "SELECT COUNT(*) FROM Track t WHERE EXISTS "
+                    "(SELECT 1 FROM PerformanceData pd WHERE pd.trackId = t.id)"
+                ).fetchone()[0]
+                no_waveform_count = track_count - waveform_count
+                year_count     = conn.execute("SELECT COUNT(*) FROM Track WHERE year IS NOT NULL AND year > 0").fetchone()[0]
                 try:
                     crate_count = conn.execute("SELECT COUNT(*) FROM Crate").fetchone()[0]
                 except sqlite3.Error:
@@ -412,11 +424,16 @@ class Api:
                 except OSError:
                     pass
             return {
-                "track_count":    track_count,
-                "bpm_count":      bpm_count,
-                "year_count":     year_count,
-                "crate_count":    crate_count,
-                "playlist_count": playlist_count,
+                "track_count":        track_count,
+                "bpm_count":          bpm_count,
+                "no_bpm_count":       no_bpm_count,
+                "key_count":          key_count,
+                "no_key_count":       no_key_count,
+                "waveform_count":     waveform_count,
+                "no_waveform_count":  no_waveform_count,
+                "year_count":         year_count,
+                "crate_count":        crate_count,
+                "playlist_count":     playlist_count,
                 "db_size_mb":     round(db_size_mb, 1),
                 "schema_version": self._library.schema_version,
             }
@@ -761,7 +778,13 @@ class Api:
                     SELECT t.id, t.title, t.artist, t.album,
                            COALESCE(t.bpm, t.bpmAnalyzed) AS bpm,
                            t.key, t.length, t.isAnalyzed, t.rating,
-                           t.fileType, t.path, t.albumArtId
+                           t.fileType, t.path, t.albumArtId,
+                           (SELECT GROUP_CONCAT(p.title, ', ')
+                            FROM PlaylistEntity pe
+                            JOIN Playlist p ON p.id = pe.listId
+                            WHERE pe.trackId = t.id) AS collections,
+                           EXISTS(SELECT 1 FROM PerformanceData pd
+                                  WHERE pd.trackId = t.id) AS has_waveform
                     FROM Track t
                     WHERE COALESCE(t.label, '') = ?
                       AND COALESCE(t.album, '') = ?

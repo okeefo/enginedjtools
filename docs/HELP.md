@@ -85,12 +85,29 @@ Use this before making bulk changes or as a regular scheduled backup. The app's 
 
 At-a-glance health check for your library:
 
-- Total track count
-- Tracks with BPM analysed
-- Tracks with year metadata
-- Collection and playlist count
-- Database size
-- Schema version
+- **Total tracks** — full count of all Track records in the database
+- **With BPM** — tracks where Engine DJ has detected the tempo (uses `bpmAnalyzed` if the manual BPM field is empty)
+- **With Key** — tracks where a musical key (0–23) has been stored
+- **With Waveform** — tracks that have overview waveform data in `PerformanceData`
+- **Crates / Playlists** — count of collections
+- **DB Size** — size of `m.db` on disk
+- **Schema Version** — the Engine DJ database schema version
+
+The **Coverage** table shows the percentage and missing count for BPM, Key, and Waveform. Use the **NO BPM / NO KEY / NO WAVEFORM** filters in the Tracks panel to find the missing tracks and re-analyse them in Engine DJ.
+
+---
+
+### Collections, Crates and Playlists — What's the Difference?
+
+In Engine DJ, **Crates** and **Playlists** are stored in exactly the same database table (`Playlist`). They are structurally identical at the database level — the distinction is only in how Engine DJ's own UI presents them.
+
+- **Crates** — unordered containers, like tags or folders. Great for grouping by genre, mood, or source.
+- **Playlists** — ordered lists where the track order is preserved.
+- **Nesting** — both crates and playlists support sub-folders. A crate can contain sub-crates; a playlist can contain sub-playlists.
+
+**Can a track be in multiple collections?** Yes. A track can belong to any number of collections simultaneously. The `PlaylistEntity` junction table stores one row per (collection, track) pair, so adding a track to a second collection doesn't remove it from the first.
+
+In Engine DJ Tools, all crates and playlists are referred to collectively as **Collections**.
 
 ---
 
@@ -131,20 +148,51 @@ Shows a context menu:
 | PLAY | Loads the track into the player and starts playback |
 | PAUSE / RESUME | Pauses or resumes playback |
 | STOP | Stops playback and resets to the beginning |
+| ADD TO COLLECTION | Opens the collection picker to add the track to another collection |
+| REMOVE FROM COLLECTION | Removes the track from the current collection |
+
+#### Multi-select
+
+- **Ctrl+Click** — toggle a single track in/out of the selection
+- **Shift+Click** — select a contiguous range from the last clicked track
+- A **selection bar** appears at the bottom showing the count of selected tracks with **ADD TO COLLECTION** (bulk-adds all selected to a collection you pick) and **CLEAR** buttons
 
 ---
 
 ### Tracks
 
-Shows all tracks in your library that are **not assigned to any collection**, grouped by **Label → Album**.
+Shows tracks in your library grouped by **Label → Album**.
 
-The interface is identical to Collections:
-- Left panel: expandable Label tree → Album sub-items
-- Right panel: track list with the same columns
-- Same double-click (play) and right-click (context menu) behaviour
-- Same search filter
+**Left panel:** Expandable label tree → album sub-items with track counts.
 
-Use this to discover tracks you've imported but haven't organised yet.
+**Right panel:** Track list for the selected group.
+
+| Column | Notes |
+|--------|-------|
+| TITLE | Track title |
+| ARTIST | Artist name |
+| BPM | Analysed BPM |
+| KEY | Camelot notation |
+| TYPE | File format |
+| LEN | Duration |
+| COLLECTIONS | Comma-separated list of all collections the track belongs to. Empty = uncollected. |
+
+**ALL / UNCOLLECTED toggle:** Switch between showing every track in the library or only tracks not yet added to any collection. Use this to find imported-but-unorganised tracks.
+
+**Quality filters:**
+
+| Filter | What it shows |
+|--------|--------------|
+| ALL | All tracks in the selected group |
+| NO BPM | Tracks where Engine DJ has not yet determined the BPM |
+| NO KEY | Tracks where no musical key has been detected |
+| NO WAVEFORM | Tracks that haven't been fully analysed (no overview waveform stored) |
+
+Use these to find tracks that still need Engine DJ analysis. Open Engine DJ and right-click → Re-analyse to fix them.
+
+**Multi-select:** Same Ctrl+Click / Shift+Click behaviour as the Collections panel — use the selection bar to bulk-add to a collection.
+
+Use this panel to discover tracks you've imported but haven't organised yet.
 
 ---
 
@@ -207,6 +255,28 @@ Colour coding:
 Colour theme editor. Adjust the CSS colour variables that define the UI's appearance. Save as a named theme; switch between themes from the dropdown.
 
 The default theme is **Acid House** (dark cyberpunk with neon cyan accents).
+
+Bundled themes (read-only):
+
+| Theme | Style |
+|-------|-------|
+| Acid House | Dark, neon cyan — default |
+| Deep Space | Dark purple, cosmic |
+| Carbon | Dark IBM grey |
+| Daylight | Light blue, clean |
+| Warm Paper | Light cream, editorial |
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `F1` | Open the User Manual |
+| `Escape` | Close any open modal, context menu, or info panel |
+| `Ctrl+Click` | Toggle a single track in/out of the selection |
+| `Shift+Click` | Select a contiguous range of tracks |
+| `Double-click` | Open the waveform player for a track |
 
 ---
 

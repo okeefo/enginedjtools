@@ -220,8 +220,8 @@
       letter-spacing: 2px; color: var(--text); flex-shrink: 0;
     }
     .topbar-title span { color: var(--cyan); }
-    .waveform { display: flex; align-items: center; gap: 2px; flex: 1; height: 32px; overflow: hidden; }
-    .waveform-bar { width: 3px; background: var(--cyan); border-radius: 1px; opacity: 0.4; }
+    .waveform { display: flex; align-items: center; gap: 1px; flex: 1; height: 32px; overflow: hidden; }
+    .waveform-bar { flex: 1; min-width: 0; background: var(--cyan); border-radius: 1px; opacity: 0.4; }
     .status-chips { display: flex; gap: 8px; flex-shrink: 0; }
     .chip {
       font-family: var(--font-mono); font-size: 9px; letter-spacing: 2px;
@@ -563,6 +563,10 @@
         <span class="nav-icon">⚙</span>
         <span class="nav-label">Settings</span>
       </div>
+      <div class="nav-item" data-panel="help">
+        <span class="nav-icon">?</span>
+        <span class="nav-label">User Manual</span>
+      </div>
     </nav>
 
     <div class="sidebar-sep"></div>
@@ -896,7 +900,7 @@
         </div>
         <div class="card-wide" id="stats-coverage" style="display:none">
           <table class="data-table">
-            <thead><tr><th>METRIC</th><th>COUNT</th><th>COVERAGE</th></tr></thead>
+            <thead><tr><th>METRIC</th><th>COUNT</th><th>COVERAGE</th><th>MISSING</th></tr></thead>
             <tbody id="stats-coverage-tbody"></tbody>
           </table>
         </div>
@@ -998,6 +1002,16 @@
                 oninput="trkFilterTracks(this.value)"
                 style="background:var(--bg-2);border:1px solid var(--dim);color:var(--text);padding:5px 9px;font-family:var(--font-body);font-size:var(--fs-body);border-radius:var(--radius);outline:none;width:200px">
             </div>
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              <button id="tqf-all" onclick="trkSetQualFilter(null)"
+                style="font-family:var(--font-mono);font-size:9px;letter-spacing:.05em;padding:3px 9px;border-radius:10px;border:1px solid rgba(0,245,255,.5);background:rgba(0,245,255,.15);color:var(--cyan);cursor:pointer">ALL</button>
+              <button id="tqf-nobpm" onclick="trkSetQualFilter('no_bpm')"
+                style="font-family:var(--font-mono);font-size:9px;letter-spacing:.05em;padding:3px 9px;border-radius:10px;border:1px solid var(--dim);background:transparent;color:var(--muted);cursor:pointer">NO BPM</button>
+              <button id="tqf-nokey" onclick="trkSetQualFilter('no_key')"
+                style="font-family:var(--font-mono);font-size:9px;letter-spacing:.05em;padding:3px 9px;border-radius:10px;border:1px solid var(--dim);background:transparent;color:var(--muted);cursor:pointer">NO KEY</button>
+              <button id="tqf-nowave" onclick="trkSetQualFilter('no_waveform')"
+                style="font-family:var(--font-mono);font-size:9px;letter-spacing:.05em;padding:3px 9px;border-radius:10px;border:1px solid var(--dim);background:transparent;color:var(--muted);cursor:pointer">NO WAVEFORM</button>
+            </div>
             <div id="trk-sel-bar" style="display:none;background:rgba(0,245,255,.07);border:1px solid rgba(0,245,255,.3);border-radius:3px;padding:5px 12px;align-items:center;gap:10px;flex-shrink:0">
               <span id="trk-sel-count" style="font-family:var(--font-mono);font-size:10px;color:var(--cyan);flex:1;letter-spacing:.06em">0 SELECTED</span>
               <button onclick="trkSelAddToCollection()" style="font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;padding:3px 10px;background:rgba(0,245,255,.15);border:1px solid rgba(0,245,255,.5);color:var(--cyan);border-radius:3px;cursor:pointer">＋ ADD TO COLLECTION…</button>
@@ -1035,6 +1049,85 @@
           background:var(--bg-1);border:1px solid var(--dim);border-radius:var(--radius);
           padding:12px 14px;height:560px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;color:var(--muted)">
           Select a log file above to view its contents.
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL: HELP / USER MANUAL ════ -->
+    <div class="panel" id="panel-help">
+      <div class="stagger" style="overflow-y:auto;padding-bottom:32px">
+        <div class="section-header">
+          <div class="section-title">User Manual</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="card-wide" style="line-height:1.7;color:var(--text)">
+
+          <h2 style="font-family:var(--font-display);font-size:var(--fs-heading);color:var(--cyan);margin:0 0 8px">Getting Started</h2>
+          <p style="color:var(--muted);margin:0 0 16px">Engine DJ Tools connects directly to your Engine DJ library database. Open a library by clicking <strong style="color:var(--text)">OPEN LIBRARY</strong> in the top bar and selecting the folder that contains your <code style="font-family:var(--font-mono);color:var(--cyan)">Music</code> database folder (the one with <code style="font-family:var(--font-mono);color:var(--cyan)">m.db</code> inside).</p>
+
+          <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0"></div>
+
+          <h2 style="font-family:var(--font-display);font-size:var(--fs-heading);color:var(--cyan);margin:0 0 8px">Collections, Crates &amp; Playlists — What's the Difference?</h2>
+          <p style="color:var(--muted);margin:0 0 10px">In Engine DJ, <strong style="color:var(--text)">Crates</strong> and <strong style="color:var(--text)">Playlists</strong> are stored in the same <code style="font-family:var(--font-mono);color:var(--cyan)">Playlist</code> database table — they are structurally identical at the database level. The distinction is purely in how the Engine DJ application presents them to you in its UI.</p>
+          <ul style="color:var(--muted);padding-left:20px;margin:0 0 10px">
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">Crates</strong> — unordered tag-like containers. Think of them as labels or folders. Great for genre, mood, or source-based grouping.</li>
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">Playlists</strong> — ordered lists. The track order matters and is preserved.</li>
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">Nesting</strong> — both crates and playlists support sub-folders using a parent/child relationship (<code style="font-family:var(--font-mono);color:var(--cyan)">parentListId</code>).</li>
+          </ul>
+          <p style="color:var(--muted);margin:0 0 10px">In Engine DJ Tools, all of these are referred to collectively as <strong style="color:var(--cyan)">Collections</strong>.</p>
+          <p style="color:var(--muted);margin:0 0 16px"><strong style="color:var(--text)">Can a track be in multiple collections?</strong> Yes. A track can belong to as many collections as you like simultaneously. The Collections column in the Tracks panel shows all collections a track belongs to.</p>
+
+          <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0"></div>
+
+          <h2 style="font-family:var(--font-display);font-size:var(--fs-heading);color:var(--cyan);margin:0 0 8px">Collections Panel</h2>
+          <p style="color:var(--muted);margin:0 0 10px">The <strong style="color:var(--text)">Collections</strong> panel shows all your crates and playlists in a tree on the left. Click any collection to see the tracks it contains on the right.</p>
+          <ul style="color:var(--muted);padding-left:20px;margin:0 0 16px">
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">Right-click a track</strong> — open the context menu to add the track to another collection, remove it, or play it.</li>
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">Double-click a track</strong> — open the waveform player.</li>
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">Multi-select</strong> — use Ctrl+Click to toggle individual tracks, Shift+Click to select a range. A selection bar appears at the bottom with <strong>ADD TO COLLECTION</strong> and <strong>CLEAR</strong> buttons.</li>
+          </ul>
+
+          <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0"></div>
+
+          <h2 style="font-family:var(--font-display);font-size:var(--fs-heading);color:var(--cyan);margin:0 0 8px">Tracks Panel</h2>
+          <p style="color:var(--muted);margin:0 0 10px">The <strong style="color:var(--text)">Tracks</strong> panel shows your full library organised by Label → Album. Expand a group on the left to see the tracks on the right.</p>
+          <ul style="color:var(--muted);padding-left:20px;margin:0 0 10px">
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">ALL / UNCOLLECTED toggle</strong> — switch between showing every track or only tracks not yet added to any collection.</li>
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">Quality filters</strong> — <code style="font-family:var(--font-mono);color:var(--cyan)">NO BPM</code>, <code style="font-family:var(--font-mono);color:var(--cyan)">NO KEY</code>, <code style="font-family:var(--font-mono);color:var(--cyan)">NO WAVEFORM</code> — quickly find tracks that haven't been fully analysed by Engine DJ.</li>
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">COLLECTIONS column</strong> — shows which collections each track belongs to (comma-separated). Empty means the track is uncollected.</li>
+            <li style="margin-bottom:6px"><strong style="color:var(--text)">Multi-select</strong> — same Ctrl+Click / Shift+Click behaviour as the Collections panel. Use the selection bar to bulk-add tracks to a collection.</li>
+          </ul>
+
+          <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0"></div>
+
+          <h2 style="font-family:var(--font-display);font-size:var(--fs-heading);color:var(--cyan);margin:0 0 8px">Backup Debugger</h2>
+          <p style="color:var(--muted);margin:0 0 16px">Analyses your Engine DJ backup folder structure and flags any anomalies such as missing backup sets, corrupt archives, or out-of-sequence versions. Use this after any drive transfer to verify the backup completed cleanly.</p>
+
+          <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0"></div>
+
+          <h2 style="font-family:var(--font-display);font-size:var(--fs-heading);color:var(--cyan);margin:0 0 8px">Manual Backup</h2>
+          <p style="color:var(--muted);margin:0 0 16px">Creates a dated ZIP snapshot of your Engine DJ database files. Keep these backups before any bulk edits. Backups are stored in a <code style="font-family:var(--font-mono);color:var(--cyan)">Backups</code> sub-folder inside your library folder.</p>
+
+          <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0"></div>
+
+          <h2 style="font-family:var(--font-display);font-size:var(--fs-heading);color:var(--cyan);margin:0 0 8px">Library Stats</h2>
+          <p style="color:var(--muted);margin:0 0 16px">Shows a summary of your library health: total track count, how many tracks have BPM, Key, and Waveform data, plus database size and schema version. Use this to gauge how much analysis work Engine DJ still needs to do.</p>
+
+          <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0"></div>
+
+          <h2 style="font-family:var(--font-display);font-size:var(--fs-heading);color:var(--cyan);margin:0 0 8px">Keyboard Shortcuts</h2>
+          <table class="data-table" style="margin-bottom:0">
+            <thead><tr><th>KEY</th><th>ACTION</th></tr></thead>
+            <tbody>
+              <tr><td><code style="font-family:var(--font-mono);color:var(--cyan)">F1</code></td><td>Open this User Manual</td></tr>
+              <tr><td><code style="font-family:var(--font-mono);color:var(--cyan)">Escape</code></td><td>Close any open modal or context menu</td></tr>
+              <tr><td><code style="font-family:var(--font-mono);color:var(--cyan)">Ctrl+Click</code></td><td>Toggle individual track selection</td></tr>
+              <tr><td><code style="font-family:var(--font-mono);color:var(--cyan)">Shift+Click</code></td><td>Select a range of tracks</td></tr>
+              <tr><td><code style="font-family:var(--font-mono);color:var(--cyan)">Double-click</code></td><td>Open waveform player for a track</td></tr>
+            </tbody>
+          </table>
+
         </div>
       </div>
     </div>
@@ -1132,6 +1225,7 @@ const panelMap = {
   stats:       'panel-stats',       browser:   'panel-browser',
   collections: 'panel-collections', tracks: 'panel-tracks',
   logs:        'panel-logs',        settings: 'panel-settings',
+  help:        'panel-help',
 };
 const topbarTitles = {
   backup:    'BACKUP <span>DEBUGGER</span>',
@@ -1144,6 +1238,7 @@ const topbarTitles = {
   tracks:      'TRACKS <span style="color:var(--cyan)">LIBRARY</span>',
   logs:        'ENGINE DJ <span style="color:var(--yellow)">LOGS</span>',
   settings:    'APP <span style="color:var(--muted)">SETTINGS</span>',
+  help:        'USER <span style="color:var(--cyan)">MANUAL</span>',
 };
 
 const panelLoaded = {};
@@ -1757,7 +1852,8 @@ async function loadStats() {
     document.getElementById('stats-grid').innerHTML = `
       <div class="stat-card"><div class="stat-card-label">TOTAL TRACKS</div><div class="stat-card-value">${s.track_count}</div></div>
       <div class="stat-card"><div class="stat-card-label">WITH BPM</div><div class="stat-card-value pink">${s.bpm_count}</div></div>
-      <div class="stat-card"><div class="stat-card-label">WITH YEAR</div><div class="stat-card-value yellow">${s.year_count}</div></div>
+      <div class="stat-card"><div class="stat-card-label">WITH KEY</div><div class="stat-card-value yellow">${s.key_count}</div></div>
+      <div class="stat-card"><div class="stat-card-label">WITH WAVEFORM</div><div class="stat-card-value cyan">${s.waveform_count}</div></div>
       <div class="stat-card"><div class="stat-card-label">CRATES</div><div class="stat-card-value">${s.crate_count}</div></div>
       <div class="stat-card"><div class="stat-card-label">PLAYLISTS</div><div class="stat-card-value">${s.playlist_count}</div></div>
       <div class="stat-card"><div class="stat-card-label">DB SIZE</div><div class="stat-card-value green">${s.db_size_mb} <span style="font-size:14px;color:var(--muted)">MB</span></div></div>
@@ -1765,8 +1861,10 @@ async function loadStats() {
 
     const pct = t => t > 0 ? Math.round((t / s.track_count) * 100) + '%' : '—';
     document.getElementById('stats-coverage-tbody').innerHTML = `
-      <tr><td>Tracks with BPM</td><td>${s.bpm_count} / ${s.track_count}</td><td style="color:var(--cyan)">${pct(s.bpm_count)}</td></tr>
-      <tr><td>Tracks with Year</td><td>${s.year_count} / ${s.track_count}</td><td style="color:var(--yellow)">${pct(s.year_count)}</td></tr>`;
+      <tr><td>Tracks with BPM</td><td>${s.bpm_count} / ${s.track_count}</td><td style="color:var(--cyan)">${pct(s.bpm_count)}</td><td style="color:var(--red)">${s.no_bpm_count > 0 ? s.no_bpm_count + ' missing' : ''}</td></tr>
+      <tr><td>Tracks with Key</td><td>${s.key_count} / ${s.track_count}</td><td style="color:var(--yellow)">${pct(s.key_count)}</td><td style="color:var(--red)">${s.no_key_count > 0 ? s.no_key_count + ' missing' : ''}</td></tr>
+      <tr><td>Tracks with Waveform</td><td>${s.waveform_count} / ${s.track_count}</td><td style="color:var(--green)">${pct(s.waveform_count)}</td><td style="color:var(--red)">${s.no_waveform_count > 0 ? s.no_waveform_count + ' missing' : ''}</td></tr>
+      <tr><td>Tracks with Year</td><td>${s.year_count} / ${s.track_count}</td><td style="color:var(--yellow)">${pct(s.year_count)}</td><td></td></tr>`;
     document.getElementById('stats-coverage').style.display = 'block';
   } catch (e) {
     document.getElementById('stats-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-msg" style="color:var(--red)">ERROR: ${escHtml(String(e))}</div></div>`;
@@ -2388,7 +2486,14 @@ function colContextMenu(e, trackId, panel) {
 }
 function colCtxDismiss() { document.getElementById('col-ctx-menu').style.display = 'none'; }
 document.addEventListener('click',   () => colCtxDismiss());
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { colCtxDismiss(); colCloseInfo(); colPickerClose(); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { colCtxDismiss(); colCloseInfo(); colPickerClose(); }
+  if (e.key === 'F1') {
+    e.preventDefault();
+    const helpNav = document.querySelector('.nav-item[data-panel="help"]');
+    if (helpNav) helpNav.click();
+  }
+});
 
 function colDismissWarn() {
   const el = document.getElementById('col-warn-bar');
@@ -2773,6 +2878,7 @@ let _trkSelLabel       = null;
 let _trkSelAlbum       = null;
 let _trkTracksAll      = [];
 let _trkTrackFilter    = '';
+let _trkQualFilter     = null;  // null | 'no_bpm' | 'no_key' | 'no_waveform'
 let _trkExpanded       = new Set();  // expanded label strings
 let _trkUncollectedOnly = false;
 
@@ -2902,6 +3008,7 @@ async function trkSelectGroup(label, album) {
   heading.textContent = `${displayLabel}  ›  ${displayAlbum}`;
   document.getElementById('trk-track-search').value = '';
   _trkTrackFilter = '';
+  trkSetQualFilter(null);
   trkBuildTree(document.getElementById('trk-search').value.trim().toLowerCase());
 
   const tracks = await pywebview.api.get_tracks_in_group(label, album, _trkUncollectedOnly);
@@ -2910,13 +3017,26 @@ async function trkSelectGroup(label, album) {
   trkRenderTracks(tracks);
 }
 
+function trkSetQualFilter(f) {
+  _trkQualFilter = f;
+  ['tqf-all','tqf-nobpm','tqf-nokey','tqf-nowave'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  const activeId = { null: 'tqf-all', no_bpm: 'tqf-nobpm', no_key: 'tqf-nokey', no_waveform: 'tqf-nowave' }[String(f)];
+  if (activeId) document.getElementById(activeId).classList.add('active');
+  trkFilterTracks(_trkTrackFilter);
+}
+
 function trkFilterTracks(q) {
   _trkTrackFilter = q;
-  const filtered = q.trim()
+  let filtered = q.trim()
     ? _trkTracksAll.filter(t =>
         (t.title  || '').toLowerCase().includes(q.toLowerCase()) ||
         (t.artist || '').toLowerCase().includes(q.toLowerCase()))
     : _trkTracksAll;
+  if (_trkQualFilter === 'no_bpm')      filtered = filtered.filter(t => !(t.bpm && t.bpm > 0));
+  if (_trkQualFilter === 'no_key')      filtered = filtered.filter(t => t.key == null || t.key < 0 || t.key > 23);
+  if (_trkQualFilter === 'no_waveform') filtered = filtered.filter(t => !t.has_waveform);
   trkRenderTracks(filtered);
 }
 
@@ -2943,6 +3063,7 @@ function trkRenderTracks(tracks) {
       <th style="padding:6px 6px;text-align:center;font-weight:400">KEY</th>
       <th style="padding:6px 6px;text-align:center;font-weight:400">TYPE</th>
       <th style="padding:6px 6px;text-align:right;font-weight:400">LEN</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:400">COLLECTIONS</th>
     </tr></thead>
     <tbody>${tracks.map(t => `
       <tr data-id="${t.id}" style="border-top:1px solid rgba(58,58,92,.4);cursor:default"
@@ -2951,12 +3072,13 @@ function trkRenderTracks(tracks) {
         onclick="trkTrackClick(event,${t.id})"
         ondblclick="colOpenPlayer(${t.id})"
         oncontextmenu="colContextMenu(event,${t.id},'tracks')">
-        <td style="padding:6px 10px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(t.title||'').replace(/"/g,'&quot;')}">${t.title||'—'}</td>
-        <td style="padding:6px 8px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.artist||'—'}</td>
+        <td style="padding:6px 10px;color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(t.title||'').replace(/"/g,'&quot;')}">${t.title||'—'}</td>
+        <td style="padding:6px 8px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.artist||'—'}</td>
         <td style="padding:6px 6px;color:var(--cyan);text-align:right;font-family:var(--font-mono);font-size:11px">${fmtBpm(t.bpm)}</td>
         <td style="padding:6px 6px;text-align:center;font-family:var(--font-mono);font-size:11px;color:${keyColor(t.key)}">${fmtKey(t.key)}</td>
         <td style="padding:6px 6px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--dim);text-transform:uppercase">${t.fileType||'—'}</td>
         <td style="padding:6px 6px;color:var(--muted);text-align:right;font-family:var(--font-mono);font-size:11px">${fmtLen(t.length)}</td>
+        <td style="padding:6px 8px;color:var(--dim);font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.collections||'')}">${t.collections ? `<span style="color:var(--cyan);opacity:.7">${escHtml(t.collections)}</span>` : '<span style="opacity:.3">—</span>'}</td>
       </tr>`).join('')}
     </tbody></table>`;
 }
