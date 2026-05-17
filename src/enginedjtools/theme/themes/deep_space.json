@@ -1,0 +1,63 @@
+{
+  "name": "Deep Space",
+  "readonly": true,
+  "colors": {
+    "bg_primary":           "#060610",
+    "bg_secondary":         "#0a0a1c",
+    "bg_surface":           "#0e0e24",
+    "bg_elevated":          "#141430",
+    "border":               "#1e1e40",
+    "border_accent":        "#7b68ee",
+    "accent_cyan":          "#7b68ee",
+    "accent_magenta":       "#da70d6",
+    "accent_yellow":        "#ffd700",
+    "text_primary":         "#d8d0f8",
+    "text_secondary":       "#8878cc",
+    "text_disabled":        "#3a3460",
+    "text_on_accent":       "#060610",
+    "success":              "#66cdaa",
+    "warning":              "#ffd700",
+    "error":                "#ff6b8a",
+    "sidebar_bg":           "#080818",
+    "sidebar_active_bg":    "#141438",
+    "sidebar_active_border":"#7b68ee",
+    "topbar_bg":            "#080814",
+    "button_bg":            "#0e0e24",
+    "button_hover_bg":      "#1a1a40",
+    "button_primary_bg":    "#7b68ee",
+    "button_primary_text":  "#060610",
+    "table_header_bg":      "#0e0e24",
+    "table_row_alt":        "#0a0a1c",
+    "input_bg":             "#0e0e24",
+    "input_border":         "#1e1e40",
+    "scrollbar_bg":         "#080818",
+    "scrollbar_handle":     "#1e1e40",
+    "waveform_a":           "#7b68ee",
+    "waveform_b":           "#da70d6"
+  },
+  "fonts": {
+    "display":          "Orbitron",
+    "mono":             "Share Tech Mono",
+    "body":             "Rajdhani",
+    "display_fallback": "Arial Black",
+    "mono_fallback":    "Consolas",
+    "body_fallback":    "Segoe UI"
+  },
+  "sizes": {
+    "font_title":   18,
+    "font_heading": 13,
+    "font_body":    12,
+    "font_small":   10,
+    "font_mono":    11,
+    "font_nav":     11
+  },
+  "spacing": {
+    "sidebar_width":   240,
+    "topbar_height":    56,
+    "padding_sm":        6,
+    "padding_md":       12,
+    "padding_lg":       20,
+    "border_radius":     3,
+    "border_radius_lg":  6
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "name": "Carbon",
+  "readonly": true,
+  "colors": {
+    "bg_primary":           "#161616",
+    "bg_secondary":         "#1c1c1c",
+    "bg_surface":           "#222222",
+    "bg_elevated":          "#2a2a2a",
+    "border":               "#393939",
+    "border_accent":        "#0f62fe",
+    "accent_cyan":          "#0f62fe",
+    "accent_magenta":       "#ee5396",
+    "accent_yellow":        "#f1c21b",
+    "text_primary":         "#f4f4f4",
+    "text_secondary":       "#a8a8a8",
+    "text_disabled":        "#525252",
+    "text_on_accent":       "#ffffff",
+    "success":              "#24a148",
+    "warning":              "#f1c21b",
+    "error":                "#da1e28",
+    "sidebar_bg":           "#1c1c1c",
+    "sidebar_active_bg":    "#2a2a2a",
+    "sidebar_active_border":"#0f62fe",
+    "topbar_bg":            "#161616",
+    "button_bg":            "#222222",
+    "button_hover_bg":      "#2a2a2a",
+    "button_primary_bg":    "#0f62fe",
+    "button_primary_text":  "#ffffff",
+    "table_header_bg":      "#222222",
+    "table_row_alt":        "#1c1c1c",
+    "input_bg":             "#222222",
+    "input_border":         "#393939",
+    "scrollbar_bg":         "#1c1c1c",
+    "scrollbar_handle":     "#393939",
+    "waveform_a":           "#0f62fe",
+    "waveform_b":           "#ee5396"
+  },
+  "fonts": {
+    "display":          "Exo 2",
+    "mono":             "IBM Plex Mono",
+    "body":             "Exo 2",
+    "display_fallback": "Arial",
+    "mono_fallback":    "Consolas",
+    "body_fallback":    "Segoe UI"
+  },
+  "sizes": {
+    "font_title":   16,
+    "font_heading": 12,
+    "font_body":    13,
+    "font_small":   10,
+    "font_mono":    11,
+    "font_nav":     12
+  },
+  "spacing": {
+    "sidebar_width":   240,
+    "topbar_height":    56,
+    "padding_sm":        6,
+    "padding_md":       12,
+    "padding_lg":       20,
+    "border_radius":     2,
+    "border_radius_lg":  4
+  }
+}

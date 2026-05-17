@@ -1,0 +1,63 @@
+{
+  "name": "Warm Paper",
+  "readonly": true,
+  "colors": {
+    "bg_primary":           "#fdf6ec",
+    "bg_secondary":         "#f5ebe0",
+    "bg_surface":           "#fffdf9",
+    "bg_elevated":          "#fffdf9",
+    "border":               "#e2cdb0",
+    "border_accent":        "#c2410c",
+    "accent_cyan":          "#c2410c",
+    "accent_magenta":       "#9d174d",
+    "accent_yellow":        "#b45309",
+    "text_primary":         "#2d1f0e",
+    "text_secondary":       "#78583c",
+    "text_disabled":        "#c4a882",
+    "text_on_accent":       "#fffdf9",
+    "success":              "#15803d",
+    "warning":              "#b45309",
+    "error":                "#b91c1c",
+    "sidebar_bg":           "#f5ebe0",
+    "sidebar_active_bg":    "#ead9c8",
+    "sidebar_active_border":"#c2410c",
+    "topbar_bg":            "#f0e0cc",
+    "button_bg":            "#fffdf9",
+    "button_hover_bg":      "#f5ebe0",
+    "button_primary_bg":    "#c2410c",
+    "button_primary_text":  "#fffdf9",
+    "table_header_bg":      "#f0e0cc",
+    "table_row_alt":        "#fdf6ec",
+    "input_bg":             "#fffdf9",
+    "input_border":         "#e2cdb0",
+    "scrollbar_bg":         "#f5ebe0",
+    "scrollbar_handle":     "#c4a882",
+    "waveform_a":           "#c2410c",
+    "waveform_b":           "#9d174d"
+  },
+  "fonts": {
+    "display":          "Playfair Display",
+    "mono":             "IBM Plex Mono",
+    "body":             "Nunito",
+    "display_fallback": "Georgia",
+    "mono_fallback":    "Consolas",
+    "body_fallback":    "Segoe UI"
+  },
+  "sizes": {
+    "font_title":   18,
+    "font_heading": 13,
+    "font_body":    13,
+    "font_small":   10,
+    "font_mono":    11,
+    "font_nav":     12
+  },
+  "spacing": {
+    "sidebar_width":   240,
+    "topbar_height":    56,
+    "padding_sm":        6,
+    "padding_md":       12,
+    "padding_lg":       20,
+    "border_radius":     4,
+    "border_radius_lg":  8
+  }
+}

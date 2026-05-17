@@ -267,16 +267,24 @@ class Api:
         return json.loads(theme_path.read_text(encoding="utf-8"))
 
     def get_user_themes(self) -> list[str]:
-        """Return names of all available themes."""
+        """Return names of all available themes — bundled first, then user-saved."""
         import json  # noqa: PLC0415
-        names = []
-        for p in _user_themes_dir().glob("*.json"):
+        bundled: list[str] = []
+        for p in _bundled_themes_dir().glob("*.json"):
             try:
-                names.append(json.loads(p.read_text())["name"])
+                bundled.append(json.loads(p.read_text(encoding="utf-8"))["name"])
             except Exception:
                 pass
-        names.insert(0, "Acid House")  # bundled default always first
-        return names
+        bundled.sort(key=lambda n: (0 if n == "Acid House" else 1, n))
+        user: list[str] = []
+        for p in _user_themes_dir().glob("*.json"):
+            try:
+                name = json.loads(p.read_text(encoding="utf-8"))["name"]
+                if name not in bundled:
+                    user.append(name)
+            except Exception:
+                pass
+        return bundled + sorted(user)
 
     def save_theme_as(self, name: str, data: dict[str, Any]) -> dict[str, Any]:
         """Save a named user theme."""
@@ -288,10 +296,15 @@ class Api:
         return {"ok": True}
 
     def load_theme(self, name: str) -> dict[str, Any]:
-        """Load any theme by name — bundled or user."""
+        """Load any theme by name — bundled themes first, then user-saved."""
         import json  # noqa: PLC0415
-        if name == "Acid House":
-            return json.loads(_bundled_theme_path().read_text(encoding="utf-8"))
+        for p in _bundled_themes_dir().glob("*.json"):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if data.get("name") == name:
+                    return data
+            except Exception:
+                pass
         for p in _user_themes_dir().glob("*.json"):
             try:
                 data = json.loads(p.read_text(encoding="utf-8"))
@@ -869,8 +882,11 @@ def _lib_to_dict(lib: EngineLibrary) -> dict[str, Any]:
     }
 
 
+def _bundled_themes_dir() -> Path:
+    return Path(__file__).parent / "theme" / "themes"
+
 def _bundled_theme_path() -> Path:
-    return Path(__file__).parent / "theme" / "themes" / "acid_house.json"
+    return _bundled_themes_dir() / "acid_house.json"
 
 
 def _user_themes_dir() -> Path:
