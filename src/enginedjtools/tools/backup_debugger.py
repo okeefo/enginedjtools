@@ -41,6 +41,7 @@ class BackupReport:
     existing_backups: list[Path] = field(default_factory=list)
     test_backup_ok: bool = False
     test_backup_error: str = ""
+    in_onedrive: bool = False
 
     @property
     def has_integrity_errors(self) -> bool:
@@ -159,6 +160,11 @@ def _test_backup(lib: EngineLibrary) -> tuple[bool, str]:
         return False, str(e)
 
 
+def _is_in_onedrive(path: Path) -> bool:
+    """Return True if any part of the path contains 'OneDrive' (case-insensitive)."""
+    return any("onedrive" in part.lower() for part in path.parts)
+
+
 def run(lib: EngineLibrary) -> BackupReport:
     """Run all backup diagnostics against the given Engine Library."""
     free_gb = _check_free_space(lib.root)
@@ -181,4 +187,5 @@ def run(lib: EngineLibrary) -> BackupReport:
         existing_backups=existing_backups,
         test_backup_ok=test_ok,
         test_backup_error=test_err,
+        in_onedrive=_is_in_onedrive(lib.root),
     )

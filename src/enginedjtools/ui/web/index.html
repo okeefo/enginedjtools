@@ -466,6 +466,15 @@
     .stagger > *:nth-child(4) { animation-delay: 0.20s; }
     .stagger > *:nth-child(5) { animation-delay: 0.25s; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    /* ── Context menu ── */
+    .ctx-item { padding:8px 16px;cursor:pointer;color:var(--text);letter-spacing:.04em }
+    .ctx-item:hover { background:rgba(0,245,255,.12);color:var(--cyan) }
+
+    /* ── Modal overlay ── */
+    .modal-overlay { display:none;position:fixed;inset:0;z-index:8000;background:rgba(5,5,12,.94);
+      align-items:center;justify-content:center }
+    .modal-overlay.open { display:flex }
   </style>
 </head>
 <body>
@@ -524,12 +533,24 @@
         <span class="nav-icon">≡</span>
         <span class="nav-label">Library Stats</span>
       </div>
+      <div class="nav-item" data-panel="collections">
+        <span class="nav-icon">≋</span>
+        <span class="nav-label">Collections</span>
+      </div>
+      <div class="nav-item" data-panel="tracks">
+        <span class="nav-icon">♫</span>
+        <span class="nav-label">Tracks</span>
+      </div>
       <div class="nav-item" data-panel="browser">
         <span class="nav-icon">⬡</span>
         <span class="nav-label">DB Browser</span>
       </div>
 
       <div class="nav-section" style="margin-top:18px;">SYSTEM</div>
+      <div class="nav-item" data-panel="logs">
+        <span class="nav-icon">▤</span>
+        <span class="nav-label">Engine Logs</span>
+      </div>
       <div class="nav-item" data-panel="settings">
         <span class="nav-icon">⚙</span>
         <span class="nav-label">Settings</span>
@@ -550,6 +571,43 @@
       <div class="status-chips" id="status-chips"></div>
     </div>
 
+    <!-- ══ SHARED PLAYER STRIP (persists across panel switches) ══ -->
+    <div id="col-player-strip" style="display:none;background:#09091a;
+      border-bottom:1px solid rgba(0,245,255,.2);overflow:hidden;flex-shrink:0">
+      <!-- Controls row -->
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(0,245,255,.025)">
+        <button id="player-play-btn" onclick="playerToggle()" title="Play / Pause"
+          style="background:rgba(0,245,255,.1);border:2px solid var(--cyan);color:var(--cyan);
+            width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px;flex-shrink:0">▶</button>
+        <button onclick="playerStop()" title="Stop"
+          style="background:none;border:1px solid rgba(0,245,255,.2);color:var(--cyan);
+            width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:12px;flex-shrink:0">⏹</button>
+        <div style="flex:1;min-width:0;overflow:hidden">
+          <div id="player-title" style="color:var(--text);font-size:12px;font-weight:600;
+            overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+          <div style="display:flex;gap:6px;font-size:10px;font-family:var(--font-mono);margin-top:1px">
+            <span id="player-artist" style="color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px"></span>
+            <span id="player-meta" style="color:var(--dim)"></span>
+          </div>
+        </div>
+        <span id="player-time" style="font-family:var(--font-mono);font-size:11px;color:var(--cyan);flex-shrink:0">0:00</span>
+        <span style="color:var(--dim);font-size:10px">/</span>
+        <span id="player-duration" style="font-family:var(--font-mono);font-size:11px;color:var(--dim);flex-shrink:0">0:00</span>
+        <span style="color:var(--dim);font-size:12px;flex-shrink:0">🔊</span>
+        <input id="player-vol" type="range" min="0" max="1" step="0.02" value="1"
+          style="width:56px;accent-color:var(--cyan);flex-shrink:0">
+        <button onclick="playerEject()" title="Eject"
+          style="background:none;border:1px solid rgba(0,245,255,.15);color:var(--dim);
+            width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:12px;flex-shrink:0">⏏</button>
+        <button id="player-hide-btn" onclick="playerHide()" title="Hide player (only when stopped)"
+          style="background:none;border:1px solid rgba(0,245,255,.15);color:var(--dim);font-size:9px;
+            font-family:var(--font-mono);padding:3px 8px;border-radius:2px;cursor:pointer;
+            letter-spacing:.04em;flex-shrink:0">▼ HIDE</button>
+      </div>
+      <!-- Waveform canvas -->
+      <canvas id="player-waveform" style="width:100%;height:68px;display:block;cursor:crosshair;background:#09091a"></canvas>
+    </div>
+
     <!-- ════ PANEL: BACKUP DEBUGGER ════ -->
     <div class="panel active" id="panel-backup">
       <div class="stagger">
@@ -557,6 +615,19 @@
         <div id="alert-banner" class="alert alert-error" style="display:none">
           <span class="alert-icon">⛔</span>
           <div id="alert-text"></div>
+        </div>
+
+        <div id="onedrive-banner" class="alert alert-warn" style="display:none">
+          <span class="alert-icon">☁</span>
+          <div>
+            <strong>Library is inside a OneDrive folder.</strong><br>
+            OneDrive syncs database files in real-time and holds file locks while doing so.
+            This causes Engine DJ's built-in backup to fail — it can create the folder structure
+            but cannot copy the <code>.db</code> files while OneDrive has them open.
+            It also slows down Engine DJ startup.<br>
+            <strong>Workaround:</strong> use the Manual Backup tab in this app — it reads the
+            files directly and is not affected by OneDrive locks.
+          </div>
         </div>
 
         <div class="toolbar">
@@ -838,6 +909,112 @@
       </div>
     </div>
 
+    <!-- ════ PANEL: COLLECTIONS ════ -->
+    <div class="panel" id="panel-collections">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Collections</div>
+          <div class="section-line"></div>
+        </div>
+        <!-- Dismissible warning — hides on click, stays gone for the session -->
+        <div id="col-warn-bar" class="alert alert-warn" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <span>☁ <strong>Read/write access:</strong> Changes here write directly to m.db.
+          Close Engine DJ before moving tracks to avoid conflicts.</span>
+          <button onclick="colDismissWarn()" title="Dismiss" style="background:none;border:none;color:inherit;cursor:pointer;font-size:16px;line-height:1;padding:0 2px;opacity:.65;flex-shrink:0">✕</button>
+        </div>
+
+        <div style="display:flex;gap:12px;min-height:400px;max-height:560px">
+          <!-- Left: collection tree -->
+          <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
+            <div style="font-family:var(--font-mono);font-size:var(--fs-small);color:var(--muted);letter-spacing:.08em">COLLECTIONS</div>
+            <input id="col-search" type="text" placeholder="Filter collections…"
+              oninput="colFilterTree(this.value)"
+              style="background:var(--bg-2);border:1px solid var(--dim);color:var(--text);padding:6px 10px;font-family:var(--font-body);font-size:var(--fs-body);border-radius:var(--radius);outline:none">
+            <div id="col-tree" style="flex:1;overflow-y:auto;border:1px solid var(--dim);border-radius:var(--radius);background:var(--bg-1);padding:4px 0"></div>
+          </div>
+          <!-- Right: track list -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;min-width:0">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div id="col-track-heading" style="font-family:var(--font-mono);font-size:var(--fs-small);color:var(--muted);letter-spacing:.08em;flex:1">SELECT A COLLECTION</div>
+              <input id="col-track-search" type="text" placeholder="Search tracks…"
+                oninput="colFilterTracks(this.value)"
+                style="background:var(--bg-2);border:1px solid var(--dim);color:var(--text);padding:5px 9px;font-family:var(--font-body);font-size:var(--fs-body);border-radius:var(--radius);outline:none;width:200px">
+              <button class="btn btn-secondary" id="col-add-btn" onclick="colAddTrack()" style="display:none">+ ADD TRACK</button>
+            </div>
+            <div id="col-track-list" style="flex:1;overflow-y:auto;border:1px solid var(--dim);border-radius:var(--radius);background:var(--bg-1)">
+              <div class="empty-state" style="height:100%">
+                <div class="empty-state-msg" style="color:var(--dim)">SELECT A COLLECTION</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL: TRACKS ════ -->
+    <div class="panel" id="panel-tracks">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Tracks</div>
+          <div class="section-line"></div>
+        </div>
+        <div id="trk-warn-bar" class="alert alert-warn" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <span>♫ <strong>Library tracks:</strong> All tracks not assigned to any collection, grouped by label and album. Double-click or right-click to play.</span>
+          <button onclick="trkDismissWarn()" title="Dismiss" style="background:none;border:none;color:inherit;cursor:pointer;font-size:16px;line-height:1;padding:0 2px;opacity:.65;flex-shrink:0">✕</button>
+        </div>
+        <div style="display:flex;gap:12px;min-height:400px;max-height:560px">
+          <!-- Left: label → album tree -->
+          <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
+            <div style="font-family:var(--font-mono);font-size:var(--fs-small);color:var(--muted);letter-spacing:.08em">LIBRARY</div>
+            <input id="trk-search" type="text" placeholder="Filter…"
+              oninput="trkFilterTree(this.value)"
+              style="background:var(--bg-2);border:1px solid var(--dim);color:var(--text);padding:6px 10px;font-family:var(--font-body);font-size:var(--fs-body);border-radius:var(--radius);outline:none">
+            <div id="trk-tree" style="flex:1;overflow-y:auto;border:1px solid var(--dim);border-radius:var(--radius);background:var(--bg-1);padding:4px 0"></div>
+          </div>
+          <!-- Right: track list -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;min-width:0">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div id="trk-track-heading" style="font-family:var(--font-mono);font-size:var(--fs-small);color:var(--muted);letter-spacing:.08em;flex:1">SELECT A GROUP</div>
+              <input id="trk-track-search" type="text" placeholder="Search tracks…"
+                oninput="trkFilterTracks(this.value)"
+                style="background:var(--bg-2);border:1px solid var(--dim);color:var(--text);padding:5px 9px;font-family:var(--font-body);font-size:var(--fs-body);border-radius:var(--radius);outline:none;width:200px">
+            </div>
+            <div id="trk-track-list" style="flex:1;overflow-y:auto;border:1px solid var(--dim);border-radius:var(--radius);background:var(--bg-1)">
+              <div class="empty-state" style="height:100%">
+                <div class="empty-state-msg" style="color:var(--dim)">SELECT A GROUP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PANEL: ENGINE LOGS ════ -->
+    <div class="panel" id="panel-logs">
+      <div class="stagger">
+        <div class="section-header">
+          <div class="section-title">Engine DJ Logs</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <select id="log-file-select" onchange="logLoad(this.value)"
+            style="background:var(--bg-2);border:1px solid var(--dim);color:var(--text);padding:6px 10px;font-family:var(--font-mono);font-size:var(--fs-small);border-radius:var(--radius);flex:1;max-width:420px">
+            <option value="">— select log file —</option>
+          </select>
+          <button class="btn btn-secondary" onclick="logRefreshList()">↺ REFRESH</button>
+          <div class="toolbar-spacer"></div>
+          <label style="font-family:var(--font-mono);font-size:var(--fs-small);color:var(--muted);display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="log-warn-only" onchange="logApplyFilter()" style="accent-color:var(--yellow)"> WARNINGS &amp; ERRORS ONLY
+          </label>
+        </div>
+        <div id="log-content" style="font-family:var(--font-mono);font-size:11px;line-height:1.55;
+          background:var(--bg-1);border:1px solid var(--dim);border-radius:var(--radius);
+          padding:12px 14px;height:560px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;color:var(--muted)">
+          Select a log file above to view its contents.
+        </div>
+      </div>
+    </div>
+
     <!-- ════ PANEL: SETTINGS ════ -->
     <div class="panel" id="panel-settings">
       <div class="stagger">
@@ -926,10 +1103,11 @@ let phase = 0;
 
 /* ═══════════════════════════════════ NAV ══ */
 const panelMap = {
-  backup:   'panel-backup',   filenames: 'panel-filenames',
-  missing:  'panel-missing',  manual:    'panel-manual',
-  stats:    'panel-stats',    browser:   'panel-browser',
-  settings: 'panel-settings',
+  backup:      'panel-backup',      filenames: 'panel-filenames',
+  missing:     'panel-missing',     manual:    'panel-manual',
+  stats:       'panel-stats',       browser:   'panel-browser',
+  collections: 'panel-collections', tracks: 'panel-tracks',
+  logs:        'panel-logs',        settings: 'panel-settings',
 };
 const topbarTitles = {
   backup:    'BACKUP <span>DEBUGGER</span>',
@@ -937,8 +1115,11 @@ const topbarTitles = {
   missing:   'MISSING <span style="color:var(--red)">FILES</span>',
   manual:    'MANUAL <span style="color:var(--green)">BACKUP</span>',
   stats:     'LIBRARY <span style="color:var(--pink)">STATS</span>',
-  browser:   'DATABASE <span style="color:var(--cyan)">BROWSER</span>',
-  settings:  'APP <span style="color:var(--muted)">SETTINGS</span>',
+  browser:     'DATABASE <span style="color:var(--cyan)">BROWSER</span>',
+  collections: 'COLLECTIONS <span style="color:var(--green)">MANAGER</span>',
+  tracks:      'TRACKS <span style="color:var(--cyan)">LIBRARY</span>',
+  logs:        'ENGINE DJ <span style="color:var(--yellow)">LOGS</span>',
+  settings:    'APP <span style="color:var(--muted)">SETTINGS</span>',
 };
 
 const panelLoaded = {};
@@ -953,9 +1134,12 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.getElementById('topbar-title').innerHTML = topbarTitles[key];
     if (!panelLoaded[key]) {
       panelLoaded[key] = true;
-      if (key === 'stats')    loadStats();
-      if (key === 'manual')   loadManualBackup();
-      if (key === 'settings') loadThemeManager();
+      if (key === 'stats')       loadStats();
+      if (key === 'manual')      loadManualBackup();
+      if (key === 'settings')    loadThemeManager();
+      if (key === 'collections') loadCollections();
+      if (key === 'tracks')      loadTracks();
+      if (key === 'logs')        logRefreshList();
     }
   });
 });
@@ -1174,13 +1358,21 @@ function renderDiagnostics(r) {
   // Status chips
   updateChips(r);
 
-  // Alert banner
+  // Alert banner — track filename issues
   if (r.track_issues && r.track_issues.length > 0) {
     const n = r.track_issues.length;
     document.getElementById('alert-text').innerHTML =
       `<strong>${n} track${n>1?'s':''} with problematic filenames detected.</strong><br>` +
       `These are the most likely cause of Engine DJ backup failure. See below to fix them.`;
     document.getElementById('alert-banner').style.display = 'flex';
+  }
+
+  // OneDrive warning banner
+  const odBanner = document.getElementById('onedrive-banner');
+  if (r.in_onedrive) {
+    odBanner.style.display = 'flex';
+  } else {
+    odBanner.style.display = 'none';
   }
 
   // Backup detail
@@ -1335,6 +1527,7 @@ function resetDiagnostics() {
   document.getElementById('backup-detail').style.display = 'none';
   document.getElementById('filename-section').style.display = 'none';
   document.getElementById('alert-banner').style.display = 'none';
+  document.getElementById('onedrive-banner').style.display = 'none';
   document.getElementById('status-chips').innerHTML = '';
   document.getElementById('track-issues-tbody').innerHTML = '';
   document.getElementById('backup-file-list').innerHTML = '';
@@ -1767,6 +1960,817 @@ async function themeDelete() {
     await loadThemeManager();
   }
 }
+
+// ══ ENGINE LOGS ══════════════════════════════════════════════════════════════
+
+let _logRaw = '';
+
+async function logRefreshList() {
+  const sel = document.getElementById('log-file-select');
+  const prev = sel.value;
+  const files = await pywebview.api.get_engine_log_files();
+  sel.innerHTML = '<option value="">— select log file —</option>';
+  files.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.name;
+    opt.textContent = `${f.name}  (${f.size_kb} KB)`;
+    sel.appendChild(opt);
+  });
+  if (prev && files.find(f => f.name === prev)) sel.value = prev;
+}
+
+async function logLoad(filename) {
+  if (!filename) return;
+  document.getElementById('log-content').textContent = 'Loading…';
+  const r = await pywebview.api.get_engine_log_content(filename);
+  if (r.error) {
+    document.getElementById('log-content').textContent = 'Error: ' + r.error;
+    return;
+  }
+  _logRaw = r.content;
+  logApplyFilter();
+}
+
+function logApplyFilter() {
+  const warnOnly = document.getElementById('log-warn-only').checked;
+  const el = document.getElementById('log-content');
+  if (!_logRaw) return;
+
+  const lines = _logRaw.split('\n');
+  const filtered = warnOnly
+    ? lines.filter(l => /^\[W\]|^\[E\]|Error|error|FAIL|fail/i.test(l))
+    : lines;
+
+  el.innerHTML = filtered.map(line => {
+    const esc = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (/^\[W\]/.test(line)) return `<span style="color:var(--yellow)">${esc}</span>`;
+    if (/^\[E\]/.test(line)) return `<span style="color:var(--red)">${esc}</span>`;
+    if (/^\[ \]/.test(line)) return `<span style="color:var(--muted)">${esc}</span>`;
+    return `<span style="color:var(--text)">${esc}</span>`;
+  }).join('\n');
+
+  // Auto-scroll to bottom to show latest entries
+  el.scrollTop = el.scrollHeight;
+}
+
+// Load log list when panel first opens
+const _origNavClick = document.querySelectorAll('.nav-item');
+
+// ══ COLLECTIONS ══════════════════════════════════════════════════════════════
+
+let _colAll = [];
+let _colSelectedId = null;
+let _colTracksAll = [];
+let _colTrackFilter = '';
+let _colExpanded = new Set();
+let _colTrackMap = {};     // id → track object for context menu / player
+let _ctxTrackId = null;    // track targeted by current context menu
+let _playerSamples = [];   // waveform samples for current player track
+
+async function loadCollections() {
+  _colAll = await pywebview.api.get_collections();
+  // Auto-expand root nodes that have children
+  _colAll.filter(i => i.parentListId === 0 && _colAll.some(c => c.parentListId === i.id))
+         .forEach(i => _colExpanded.add(i.id));
+  colBuildTree('');
+}
+
+function colBuildTree(filterText) {
+  const tree = document.getElementById('col-tree');
+  tree.innerHTML = '';
+  const lower = filterText.toLowerCase();
+
+  if (lower) {
+    // Flat filtered list — show matching items regardless of expand state
+    const matches = _colAll.filter(i => i.title.toLowerCase().includes(lower));
+    matches.forEach(i => tree.appendChild(_colMakeRow(i, 0, false)));
+    if (!matches.length)
+      tree.innerHTML = '<div style="padding:12px;color:var(--dim);font-size:11px;font-family:var(--font-mono)">NO MATCHES</div>';
+    return;
+  }
+
+  function renderLevel(parentId, depth) {
+    const children = _colAll.filter(i => i.parentListId === parentId)
+                             .sort((a, b) => a.title.localeCompare(b.title));
+    children.forEach(child => {
+      const hasKids = _colAll.some(i => i.parentListId === child.id);
+      tree.appendChild(_colMakeRow(child, depth, hasKids));
+      if (hasKids && _colExpanded.has(child.id)) renderLevel(child.id, depth + 1);
+    });
+  }
+  renderLevel(0, 0);
+}
+
+function _colMakeRow(item, depth, hasChildren) {
+  const isSelected = item.id === _colSelectedId;
+  const isExpanded = _colExpanded.has(item.id);
+
+  const row = document.createElement('div');
+  row.style.cssText = [
+    `padding:5px 10px 5px ${8 + depth * 14}px`,
+    'display:flex;align-items:center;gap:0',
+    `font-family:var(--font-body);font-size:var(--fs-body)`,
+    `color:${isSelected ? 'var(--cyan)' : 'var(--muted)'}`,
+    `border-left:2px solid ${isSelected ? 'var(--cyan)' : 'transparent'}`,
+    isSelected ? 'background:rgba(0,245,255,0.05)' : '',
+  ].join(';');
+  row.dataset.id = item.id;
+
+  // Expand/collapse arrow — only rendered for parents
+  const arrow = document.createElement('span');
+  arrow.style.cssText = 'width:18px;flex-shrink:0;text-align:center;font-size:9px;cursor:pointer;color:var(--dim);padding:2px 0;user-select:none';
+  if (hasChildren) {
+    arrow.textContent = isExpanded ? '▾' : '▸';
+    arrow.style.color = isExpanded ? 'var(--cyan)' : 'var(--dim)';
+    arrow.addEventListener('click', e => {
+      e.stopPropagation();
+      if (_colExpanded.has(item.id)) _colExpanded.delete(item.id);
+      else _colExpanded.add(item.id);
+      colBuildTree(document.getElementById('col-search').value);
+    });
+  } else {
+    arrow.textContent = '·';
+  }
+
+  const label = document.createElement('span');
+  label.textContent = item.title;
+  label.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer';
+  label.addEventListener('click', () => colSelectCollection(item));
+
+  row.appendChild(arrow);
+  row.appendChild(label);
+  return row;
+}
+
+async function colSelectCollection(item) {
+  _colSelectedId = item.id;
+  _colTrackFilter = '';
+  document.getElementById('col-track-search').value = '';
+  document.getElementById('col-track-heading').textContent =
+    `${item.title.toUpperCase()}  ·  LOADING…`;
+  document.getElementById('col-add-btn').style.display = 'inline-flex';
+
+  colBuildTree(document.getElementById('col-search').value);
+
+  _colTracksAll = await pywebview.api.get_collection_tracks(item.id);
+  document.getElementById('col-track-heading').textContent =
+    `${item.title.toUpperCase()}  ·  ${_colTracksAll.length} TRACKS`;
+  colRenderTracks(_colTracksAll);
+}
+
+function colFilterTracks(q) {
+  _colTrackFilter = q.toLowerCase();
+  const filtered = _colTrackFilter
+    ? _colTracksAll.filter(t =>
+        (t.title||'').toLowerCase().includes(_colTrackFilter) ||
+        (t.artist||'').toLowerCase().includes(_colTrackFilter) ||
+        (t.album||'').toLowerCase().includes(_colTrackFilter))
+    : _colTracksAll;
+  colRenderTracks(filtered);
+}
+
+function colFilterTree(q) {
+  colBuildTree(q);
+}
+
+function colRenderTracks(tracks) {
+  const el = document.getElementById('col-track-list');
+  if (!tracks.length) {
+    el.innerHTML = '<div class="empty-state" style="height:100%"><div class="empty-state-msg" style="color:var(--dim)">NO TRACKS</div></div>';
+    return;
+  }
+
+  // Build lookup for context menu / player
+  _colTrackMap = {};
+  tracks.forEach(t => _colTrackMap[t.id] = t);
+
+  const fmtBpm = b => (b && b > 0) ? parseFloat(b).toFixed(1) : '—';
+  const fmtLen = s => {
+    if (!s) return '—';
+    const m = Math.floor(s/60), sec = Math.round(s%60);
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  };
+  const fmtKey = k => {
+    if (k == null || k < 0 || k >= COL_KEY_MAP.length) return '—';
+    return COL_KEY_MAP[k].cam;
+  };
+  const keyColor = k => (k != null && k >= 0 && k < 12) ? '#ffd700' : '#b388ff';
+
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--font-body);font-size:var(--fs-body)">
+    <thead><tr style="position:sticky;top:0;background:var(--bg-2);color:var(--muted);font-size:10px;font-family:var(--font-mono);letter-spacing:.06em">
+      <th style="padding:6px 10px;text-align:left;font-weight:400">TITLE</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:400">ARTIST</th>
+      <th style="padding:6px 6px;text-align:right;font-weight:400">BPM</th>
+      <th style="padding:6px 6px;text-align:center;font-weight:400">KEY</th>
+      <th style="padding:6px 6px;text-align:center;font-weight:400">TYPE</th>
+      <th style="padding:6px 6px;text-align:right;font-weight:400">LEN</th>
+      <th style="padding:6px 8px;text-align:center;font-weight:400"></th>
+    </tr></thead>
+    <tbody>${tracks.map(t => `
+      <tr data-id="${t.id}" style="border-top:1px solid rgba(58,58,92,.4);cursor:default"
+        onmouseover="this.style.background='rgba(0,245,255,0.04)'" onmouseout="this.style.background=''"
+        ondblclick="colOpenPlayer(${t.id})"
+        oncontextmenu="colContextMenu(event,${t.id})">
+        <td style="padding:6px 10px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(t.title||'').replace(/"/g,'&quot;')}">${t.title||'—'}</td>
+        <td style="padding:6px 8px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.artist||'—'}</td>
+        <td style="padding:6px 6px;color:var(--cyan);text-align:right;font-family:var(--font-mono);font-size:11px">${fmtBpm(t.bpm)}</td>
+        <td style="padding:6px 6px;text-align:center;font-family:var(--font-mono);font-size:11px;color:${keyColor(t.key)}">${fmtKey(t.key)}</td>
+        <td style="padding:6px 6px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--dim);text-transform:uppercase">${t.fileType||'—'}</td>
+        <td style="padding:6px 6px;color:var(--muted);text-align:right;font-family:var(--font-mono);font-size:11px">${fmtLen(t.length)}</td>
+        <td style="padding:6px 8px;text-align:center">
+          <button onclick="colRemoveTrack(${t.id},'${(t.title||'').replace(/'/g,"\\'")}')"
+            style="background:none;border:1px solid rgba(255,34,68,.3);color:var(--red);padding:2px 8px;border-radius:2px;cursor:pointer;font-size:10px;font-family:var(--font-mono)">✕</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+async function colRemoveTrack(trackId, title) {
+  if (!_colSelectedId) return;
+  const r = await pywebview.api.remove_track_from_collection(_colSelectedId, trackId);
+  if (r.ok) {
+    _colTracksAll = _colTracksAll.filter(t => t.id !== trackId);
+    const heading = document.getElementById('col-track-heading');
+    const parts = heading.textContent.split('·');
+    heading.textContent = `${parts[0].trim()}  ·  ${_colTracksAll.length} TRACKS`;
+    colFilterTracks(_colTrackFilter);
+  } else {
+    alert('Error: ' + (r.error || 'unknown'));
+  }
+}
+
+async function colAddTrack() {
+  if (!_colSelectedId) return;
+
+  // Open a native file picker via pywebview (starts in last-used folder or library drive).
+  const picked = await pywebview.api.browse_for_track();
+  if (!picked || !picked.path) return;
+
+  const btn = document.getElementById('col-add-btn');
+  const orig = btn.textContent;
+  btn.textContent = '…ADDING';
+  btn.disabled = true;
+
+  try {
+    const r = await pywebview.api.add_track_to_collection_from_file(_colSelectedId, picked.path);
+    if (!r.ok) {
+      alert('Error: ' + (r.error || 'unknown'));
+      return;
+    }
+    if (r.already_present) {
+      alert('Track is already in this collection.');
+      return;
+    }
+    // Refresh the track list to show the newly added track.
+    const tracks = await pywebview.api.get_collection_tracks(_colSelectedId);
+    _colTracksAll = tracks;
+    const heading = document.getElementById('col-track-heading');
+    const parts = heading.textContent.split('·');
+    heading.textContent = `${parts[0].trim()}  ·  ${_colTracksAll.length} TRACKS`;
+    colFilterTracks(_colTrackFilter);
+    if (!r.already_existed) {
+      // Brief flash to indicate the new track was inserted and queued for analysis.
+      btn.textContent = '✓ ADDED — open Engine DJ to analyse';
+      setTimeout(() => { btn.textContent = orig; }, 3000);
+      return;
+    }
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent === '…ADDING') btn.textContent = orig;
+  }
+}
+
+// ══ PLAYER HIDE BUTTON ═══════════════════════════════════════════════════════
+function playerHide() {
+  const audio = document.getElementById('player-audio');
+  if (audio.src && !audio.paused) return; // blocked while playing
+  colClosePlayer();
+}
+function playerUpdateHideBtn() {
+  const btn  = document.getElementById('player-hide-btn');
+  const audio = document.getElementById('player-audio');
+  if (!btn) return;
+  const playing = !!(audio.src && !audio.paused && !audio.ended);
+  btn.disabled      = playing;
+  btn.style.opacity = playing ? '0.25' : '0.7';
+  btn.style.cursor  = playing ? 'not-allowed' : 'pointer';
+}
+
+// ══ KEY MAP (Engine DJ integer → musical key + Camelot) ═══════════════════════
+const COL_KEY_MAP = [
+  {name:'C maj',  cam:'8B'}, {name:'D♭ maj', cam:'3B'}, {name:'D maj',  cam:'10B'},
+  {name:'E♭ maj', cam:'5B'}, {name:'E maj',  cam:'12B'},{name:'F maj',  cam:'7B'},
+  {name:'F♯ maj', cam:'2B'}, {name:'G maj',  cam:'9B'}, {name:'A♭ maj', cam:'4B'},
+  {name:'A maj',  cam:'11B'},{name:'B♭ maj', cam:'6B'}, {name:'B maj',  cam:'1B'},
+  {name:'C min',  cam:'5A'}, {name:'C♯ min', cam:'12A'},{name:'D min',  cam:'7A'},
+  {name:'E♭ min', cam:'2A'}, {name:'E min',  cam:'9A'}, {name:'F min',  cam:'4A'},
+  {name:'F♯ min', cam:'11A'},{name:'G min',  cam:'6A'}, {name:'A♭ min', cam:'1A'},
+  {name:'A min',  cam:'8A'}, {name:'B♭ min', cam:'3A'}, {name:'B min',  cam:'10A'},
+];
+function colKeyName(k) { return (k != null && k >= 0 && k < COL_KEY_MAP.length) ? COL_KEY_MAP[k].name : '—'; }
+function colKeyCam(k)  { return (k != null && k >= 0 && k < COL_KEY_MAP.length) ? COL_KEY_MAP[k].cam  : '—'; }
+
+// ══ CONTEXT MENU ══════════════════════════════════════════════════════════════
+
+function colContextMenu(e, trackId) {
+  e.preventDefault();
+  _ctxTrackId = trackId;
+  const menu = document.getElementById('col-ctx-menu');
+  menu.style.display = 'block';
+  let left = e.clientX, top = e.clientY;
+  if (left + 180 > window.innerWidth)  left = window.innerWidth  - 184;
+  if (top  + 140 > window.innerHeight) top  = window.innerHeight - 144;
+  menu.style.left = left + 'px';
+  menu.style.top  = top  + 'px';
+}
+function colCtxDismiss() { document.getElementById('col-ctx-menu').style.display = 'none'; }
+document.addEventListener('click',   () => colCtxDismiss());
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { colCtxDismiss(); colCloseInfo(); } });
+
+function colDismissWarn() {
+  const el = document.getElementById('col-warn-bar');
+  if (el) el.style.display = 'none';
+}
+
+async function colCtxInfo()  { colCtxDismiss(); if (_ctxTrackId != null) await colOpenInfo(_ctxTrackId); }
+async function colCtxPlay()  { colCtxDismiss(); if (_ctxTrackId != null) await colOpenPlayer(_ctxTrackId, true); }
+function colCtxPause() {
+  colCtxDismiss();
+  const a = document.getElementById('player-audio');
+  if (a && a.src) { a.paused ? a.play().catch(()=>{}) : a.pause(); }
+}
+function colCtxStop() {
+  colCtxDismiss();
+  const a = document.getElementById('player-audio');
+  if (a) { a.pause(); a.currentTime = 0; }
+}
+
+// ══ INFO MODAL ════════════════════════════════════════════════════════════════
+
+async function colOpenInfo(trackId) {
+  const modal = document.getElementById('col-info-modal');
+  modal.classList.add('open');
+  document.getElementById('col-info-loading').style.display = 'block';
+  document.getElementById('col-info-content').style.display = 'none';
+
+  const [info, wf] = await Promise.all([
+    pywebview.api.get_track_info(trackId),
+    pywebview.api.get_waveform_data(trackId),
+  ]);
+
+  document.getElementById('col-info-loading').style.display = 'none';
+  if (info.error) {
+    document.getElementById('col-info-loading').style.display = 'block';
+    document.getElementById('col-info-loading').textContent = 'Error: ' + info.error;
+    return;
+  }
+  document.getElementById('col-info-content').style.display = 'block';
+
+  const artEl = document.getElementById('col-info-art');
+  if (info.album_art_b64) {
+    artEl.src = info.album_art_b64;
+    artEl.style.display = 'block';
+  } else {
+    artEl.style.display = 'none';
+  }
+
+  const fmtLen  = s => { if (!s) return '—'; const m=Math.floor(s/60),sec=Math.round(s%60); return `${m}:${String(sec).padStart(2,'0')}`; };
+  const fmtSize = b => b ? (b/1048576).toFixed(1)+' MB' : '—';
+  const fmtDate = ts => ts ? new Date(ts*1000).toLocaleDateString() : '—';
+
+  const rows = [
+    ['TITLE',    info.title],
+    ['ARTIST',   info.artist],
+    ['ALBUM',    info.album],
+    ['GENRE',    info.genre],
+    ['LABEL',    info.label],
+    ['YEAR',     info.year],
+    ['BPM',      info.bpm ? parseFloat(info.bpm).toFixed(1) : '—'],
+    ['KEY',      colKeyName(info.key) + (info.key != null ? `  ·  ${colKeyCam(info.key)}` : '')],
+    ['LENGTH',   fmtLen(info.length)],
+    ['TYPE',     (info.fileType||'—').toUpperCase()],
+    ['BITRATE',  info.bitrate ? info.bitrate+' kbps' : '—'],
+    ['SIZE',     fmtSize(info.fileBytes)],
+    ['ANALYSED', info.isAnalyzed ? 'Yes' : 'No'],
+    ['ADDED',    fmtDate(info.dateAdded)],
+    ['PATH',     info.abs_path || info.path || '—'],
+  ];
+  document.getElementById('col-info-details').innerHTML = rows.map(([k,v]) =>
+    `<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid rgba(58,58,92,.3)">
+      <span style="color:var(--muted);font-family:var(--font-mono);font-size:10px;width:68px;flex-shrink:0">${k}</span>
+      <span style="color:var(--text);font-size:12px;word-break:break-all">${v||'—'}</span>
+    </div>`
+  ).join('');
+
+  // Draw static waveform
+  const cvs = document.getElementById('col-info-waveform');
+  const rect = cvs.getBoundingClientRect();
+  cvs.width  = Math.round(rect.width)  || 600;
+  cvs.height = Math.round(rect.height) || 70;
+  wfDrawStatic(cvs, wf.samples || []);
+}
+
+function colCloseInfo() {
+  document.getElementById('col-info-modal').classList.remove('open');
+}
+
+// ══ PLAYER MODAL ══════════════════════════════════════════════════════════════
+
+async function colOpenPlayer(trackId, autoPlay) {
+  // Show the embedded strip immediately with placeholder text
+  const strip = document.getElementById('col-player-strip');
+  strip.style.display = 'block';
+
+  const track = _colTrackMap[trackId];
+  document.getElementById('player-title').textContent  = track ? (track.title  || '…') : '…';
+  document.getElementById('player-artist').textContent = track ? (track.artist || '') : '';
+  document.getElementById('player-meta').textContent   = '';
+  playerUpdateTime(0, 0);
+  wfClear(document.getElementById('player-waveform'));
+
+  const [info, wf] = await Promise.all([
+    pywebview.api.get_track_info(trackId),
+    pywebview.api.get_waveform_data(trackId),
+  ]);
+
+  if (info.error) { alert('Error: ' + info.error); colClosePlayer(); return; }
+
+  document.getElementById('player-title').textContent  = info.title  || 'Unknown';
+  document.getElementById('player-artist').textContent = info.artist || '';
+  const bpmStr  = info.bpm ? parseFloat(info.bpm).toFixed(1) : '—';
+  const keyStr  = colKeyCam(info.key);
+  const typeStr = (info.fileType || '—').toUpperCase();
+  document.getElementById('player-meta').textContent = `${bpmStr} BPM · ${keyStr} · ${typeStr}`;
+
+  _playerSamples = wf.samples || [];
+
+  // Size canvas after strip is visible and laid out
+  setTimeout(() => {
+    const cvs  = document.getElementById('player-waveform');
+    const rect = cvs.getBoundingClientRect();
+    cvs.width  = Math.round(rect.width)  || 700;
+    cvs.height = Math.round(rect.height) || 72;
+    wfDrawStatic(cvs, _playerSamples);
+    wfDrawNeedle(cvs, 0);
+  }, 30);
+
+  const audio = document.getElementById('player-audio');
+  audio.src    = info.file_url || '';
+  audio.volume = parseFloat(document.getElementById('player-vol').value);
+  playerUpdateTime(0, info.length || 0);
+  document.getElementById('player-play-btn').textContent = '▶';
+
+  if (autoPlay && info.file_url) audio.play().catch(() => {});
+}
+
+function colClosePlayer() {
+  const audio = document.getElementById('player-audio');
+  audio.pause(); audio.src = '';
+  document.getElementById('col-player-strip').style.display = 'none';
+  playerUpdateTime(0, 0);
+}
+function playerToggle() {
+  const a = document.getElementById('player-audio');
+  a.paused ? a.play().catch(() => {}) : a.pause();
+}
+function playerStop() {
+  const a = document.getElementById('player-audio');
+  a.pause(); a.currentTime = 0;
+  playerRedraw(0);
+  playerUpdateHideBtn();
+}
+function playerEject() { colClosePlayer(); }
+
+function playerUpdateTime(cur, dur) {
+  const fmt = s => { const m=Math.floor(s/60),sec=Math.round(s%60); return `${m}:${String(sec).padStart(2,'0')}`; };
+  document.getElementById('player-time').textContent     = fmt(cur);
+  document.getElementById('player-duration').textContent = fmt(dur || 0);
+}
+function playerRedraw(progress) {
+  const cvs = document.getElementById('player-waveform');
+  if (!cvs || !cvs.width) return;
+  wfDrawStatic(cvs, _playerSamples);
+  wfDrawNeedle(cvs, progress);
+}
+
+// Wire up audio element events (once DOM is ready)
+window.addEventListener('load', () => {
+  const audio = document.getElementById('player-audio');
+  if (!audio) return;
+
+  audio.addEventListener('timeupdate', () => {
+    const d = audio.duration || 0, t = audio.currentTime;
+    playerUpdateTime(t, d);
+    playerRedraw(d ? t / d : 0);
+  });
+  audio.addEventListener('play',  () => { document.getElementById('player-play-btn').textContent = '⏸'; playerUpdateHideBtn(); });
+  audio.addEventListener('pause', () => { document.getElementById('player-play-btn').textContent = '▶'; playerUpdateHideBtn(); });
+  audio.addEventListener('ended', () => { document.getElementById('player-play-btn').textContent = '▶'; playerRedraw(0); playerUpdateHideBtn(); });
+
+  document.getElementById('player-vol').addEventListener('input', function () {
+    audio.volume = parseFloat(this.value);
+  });
+
+  // Click / drag to seek on waveform canvas
+  const cvs = document.getElementById('player-waveform');
+  let dragging = false;
+  function seekAt(e) {
+    const r = cvs.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    if (audio.duration) audio.currentTime = frac * audio.duration;
+  }
+  cvs.addEventListener('mousedown', e => { dragging = true; seekAt(e); });
+  cvs.addEventListener('mousemove', e => { if (dragging) seekAt(e); });
+  document.addEventListener('mouseup', () => { dragging = false; });
+});
+
+// ══ TRACKS PANEL ═════════════════════════════════════════════════════════════
+// Shows tracks not assigned to any collection, grouped by label → album.
+// Mirrors the Collections panel exactly — same player, context menu, row ops.
+
+let _trkGroups   = [];      // [{label, album, count}]
+let _trkSelLabel = null;
+let _trkSelAlbum = null;
+let _trkTracksAll  = [];
+let _trkTrackFilter = '';
+let _trkExpanded = new Set();  // expanded label strings
+
+async function loadTracks() {
+  const tree = document.getElementById('trk-tree');
+  tree.innerHTML = '<div style="padding:12px 10px;color:var(--dim);font-size:11px">Loading…</div>';
+  _trkGroups = await pywebview.api.get_track_tree();
+  _trkExpanded.clear();
+  // Auto-expand single label
+  const labels = [...new Set(_trkGroups.map(g => g.label))];
+  if (labels.length === 1) _trkExpanded.add(labels[0]);
+  trkBuildTree('');
+}
+
+function trkDismissWarn() {
+  const el = document.getElementById('trk-warn-bar');
+  if (el) el.style.display = 'none';
+}
+
+function trkFilterTree(q) {
+  trkBuildTree(q.trim().toLowerCase());
+}
+
+function trkBuildTree(filterText) {
+  const el = document.getElementById('trk-tree');
+  if (!_trkGroups.length) {
+    el.innerHTML = '<div style="padding:12px 10px;color:var(--dim);font-size:11px">No uncollected tracks found.</div>';
+    return;
+  }
+
+  const groups = filterText
+    ? _trkGroups.filter(g =>
+        g.label.toLowerCase().includes(filterText) ||
+        g.album.toLowerCase().includes(filterText))
+    : _trkGroups;
+
+  // Group by label
+  const byLabel = new Map();
+  for (const g of groups) {
+    if (!byLabel.has(g.label)) byLabel.set(g.label, []);
+    byLabel.get(g.label).push(g);
+  }
+
+  let html = '';
+  for (const [label, albums] of byLabel) {
+    const expanded   = _trkExpanded.has(label) || !!filterText;
+    const totalTracks = albums.reduce((s, a) => s + a.count, 0);
+    const displayLabel = label || '(no label)';
+    const arrow = expanded ? '▾' : '▸';
+
+    html += `<div data-label="${label.replace(/"/g,'&quot;')}"
+      style="padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;
+        font-size:12px;font-family:var(--font-mono);color:var(--muted);
+        border-bottom:1px solid rgba(58,58,92,.25)"
+      onmouseover="this.style.background='rgba(0,245,255,.04)'"
+      onmouseout="this.style.background=''"
+      onclick="trkToggleLabel(this,'${label.replace(/'/g,"\\'")}')">
+      <span style="color:var(--cyan);font-size:10px;width:10px">${arrow}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayLabel}</span>
+      <span style="color:var(--dim);font-size:10px">${totalTracks}</span>
+    </div>`;
+
+    if (expanded) {
+      for (const g of albums) {
+        const selLabel = _trkSelLabel === label;
+        const selAlbum = selLabel && _trkSelAlbum === g.album;
+        const displayAlbum = g.album || '(no album)';
+        html += `<div
+          style="padding:4px 10px 4px 28px;cursor:pointer;display:flex;align-items:center;gap:6px;
+            font-size:12px;font-family:var(--font-body);
+            color:${selAlbum ? 'var(--cyan)' : 'var(--text)'};
+            background:${selAlbum ? 'rgba(0,245,255,.08)' : ''};
+            border-bottom:1px solid rgba(58,58,92,.15)"
+          onmouseover="this.style.background='rgba(0,245,255,.04)'"
+          onmouseout="this.style.background='${selAlbum ? 'rgba(0,245,255,.08)' : ''}'"
+          onclick="trkSelectGroup('${label.replace(/'/g,"\\'")}','${g.album.replace(/'/g,"\\'")}')">
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayAlbum}</span>
+          <span style="color:var(--dim);font-size:10px;font-family:var(--font-mono)">${g.count}</span>
+        </div>`;
+      }
+    }
+  }
+  el.innerHTML = html;
+}
+
+function trkToggleLabel(el, label) {
+  if (_trkExpanded.has(label)) _trkExpanded.delete(label);
+  else _trkExpanded.add(label);
+  trkBuildTree(document.getElementById('trk-search').value.trim().toLowerCase());
+}
+
+async function trkSelectGroup(label, album) {
+  _trkSelLabel = label;
+  _trkSelAlbum = album;
+  const heading = document.getElementById('trk-track-heading');
+  const displayLabel = label || '(no label)';
+  const displayAlbum = album || '(no album)';
+  heading.textContent = `${displayLabel}  ›  ${displayAlbum}`;
+  document.getElementById('trk-track-search').value = '';
+  _trkTrackFilter = '';
+  trkBuildTree(document.getElementById('trk-search').value.trim().toLowerCase());
+
+  const tracks = await pywebview.api.get_tracks_in_group(label, album);
+  _trkTracksAll = tracks;
+  heading.textContent = `${displayLabel}  ›  ${displayAlbum}  ·  ${tracks.length} TRACKS`;
+  trkRenderTracks(tracks);
+}
+
+function trkFilterTracks(q) {
+  _trkTrackFilter = q;
+  const filtered = q.trim()
+    ? _trkTracksAll.filter(t =>
+        (t.title  || '').toLowerCase().includes(q.toLowerCase()) ||
+        (t.artist || '').toLowerCase().includes(q.toLowerCase()))
+    : _trkTracksAll;
+  trkRenderTracks(filtered);
+}
+
+function trkRenderTracks(tracks) {
+  const el = document.getElementById('trk-track-list');
+  if (!tracks.length) {
+    el.innerHTML = '<div class="empty-state" style="height:100%"><div class="empty-state-msg" style="color:var(--dim)">NO TRACKS</div></div>';
+    return;
+  }
+  // Merge into shared track map so context menu / player can look up metadata
+  tracks.forEach(t => _colTrackMap[t.id] = t);
+
+  const fmtBpm = b => (b && b > 0) ? parseFloat(b).toFixed(1) : '—';
+  const fmtLen = s => { if (!s) return '—'; const m=Math.floor(s/60),sec=Math.round(s%60); return `${m}:${String(sec).padStart(2,'0')}`; };
+  const fmtKey = k => (k != null && k >= 0 && k < COL_KEY_MAP.length) ? COL_KEY_MAP[k].cam : '—';
+  const keyColor = k => (k != null && k >= 0 && k < 12) ? '#ffd700' : '#b388ff';
+
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:var(--font-body);font-size:var(--fs-body)">
+    <thead><tr style="position:sticky;top:0;background:var(--bg-2);color:var(--muted);font-size:10px;font-family:var(--font-mono);letter-spacing:.06em">
+      <th style="padding:6px 10px;text-align:left;font-weight:400">TITLE</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:400">ARTIST</th>
+      <th style="padding:6px 6px;text-align:right;font-weight:400">BPM</th>
+      <th style="padding:6px 6px;text-align:center;font-weight:400">KEY</th>
+      <th style="padding:6px 6px;text-align:center;font-weight:400">TYPE</th>
+      <th style="padding:6px 6px;text-align:right;font-weight:400">LEN</th>
+    </tr></thead>
+    <tbody>${tracks.map(t => `
+      <tr data-id="${t.id}" style="border-top:1px solid rgba(58,58,92,.4);cursor:default"
+        onmouseover="this.style.background='rgba(0,245,255,0.04)'" onmouseout="this.style.background=''"
+        ondblclick="colOpenPlayer(${t.id})"
+        oncontextmenu="colContextMenu(event,${t.id})">
+        <td style="padding:6px 10px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(t.title||'').replace(/"/g,'&quot;')}">${t.title||'—'}</td>
+        <td style="padding:6px 8px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.artist||'—'}</td>
+        <td style="padding:6px 6px;color:var(--cyan);text-align:right;font-family:var(--font-mono);font-size:11px">${fmtBpm(t.bpm)}</td>
+        <td style="padding:6px 6px;text-align:center;font-family:var(--font-mono);font-size:11px;color:${keyColor(t.key)}">${fmtKey(t.key)}</td>
+        <td style="padding:6px 6px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--dim);text-transform:uppercase">${t.fileType||'—'}</td>
+        <td style="padding:6px 6px;color:var(--muted);text-align:right;font-family:var(--font-mono);font-size:11px">${fmtLen(t.length)}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ══ WAVEFORM DRAWING ══════════════════════════════════════════════════════════
+
+function wfClear(canvas) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#09091a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function wfDrawStatic(canvas, samples) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.fillStyle = '#09091a';
+  ctx.fillRect(0, 0, W, H);
+
+  if (!samples || !samples.length) {
+    ctx.fillStyle = 'rgba(0,245,255,.15)';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('No waveform — track not yet analysed', W / 2, H / 2);
+    return;
+  }
+
+  // Find peak per channel for normalisation
+  let maxLo = 1, maxMi = 1, maxHi = 1;
+  for (const [lo, mi, hi] of samples) {
+    if (lo > maxLo) maxLo = lo;
+    if (mi > maxMi) maxMi = mi;
+    if (hi > maxHi) maxHi = hi;
+  }
+
+  const halfH = H / 2;
+  const barW  = W / samples.length;
+
+  for (let i = 0; i < samples.length; i++) {
+    const x = i * barW;
+    const [lo, mi, hi] = samples[i];
+
+    // Low-freq band: orange-red — most energy, drawn first (behind)
+    const loH = (lo / maxLo) * halfH * 0.95;
+    ctx.fillStyle = 'rgba(255,90,20,0.82)';
+    ctx.fillRect(x, halfH - loH, Math.max(1, barW), loH * 2);
+
+    // Mid-freq band: green — overlaid
+    const miH = (mi / maxMi) * halfH * 0.65;
+    ctx.fillStyle = 'rgba(40,220,80,0.78)';
+    ctx.fillRect(x, halfH - miH, Math.max(1, barW), miH * 2);
+
+    // High-freq band: cyan — smallest, sharpest, on top
+    const hiH = (hi / maxHi) * halfH * 0.32;
+    ctx.fillStyle = 'rgba(0,245,255,0.95)';
+    ctx.fillRect(x, halfH - hiH, Math.max(1, barW), hiH * 2);
+  }
+
+  // Hairline centre
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, halfH); ctx.lineTo(W, halfH); ctx.stroke();
+}
+
+function wfDrawNeedle(canvas, progress) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const x = Math.round(Math.max(0, Math.min(1, progress)) * W);
+
+  // Dim already-played region
+  ctx.fillStyle = 'rgba(0,0,0,0.38)';
+  ctx.fillRect(0, 0, x, H);
+
+  // Outer glow
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+
+  // Needle
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+
+  // Top + bottom arrowhead markers
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.moveTo(x-5,0);   ctx.lineTo(x+5,0);   ctx.lineTo(x,7);   ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x-5,H);   ctx.lineTo(x+5,H);   ctx.lineTo(x,H-7); ctx.closePath(); ctx.fill();
+}
 </script>
+
+<!-- ── CONTEXT MENU ──────────────────────────────────────────────────────── -->
+<div id="col-ctx-menu" style="display:none;position:fixed;z-index:9500;min-width:168px;
+  background:#0c0c1c;border:1px solid rgba(0,245,255,.5);border-radius:4px;overflow:hidden;
+  font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;
+  box-shadow:0 8px 32px rgba(0,0,0,.85),0 0 20px rgba(0,245,255,.08)">
+  <div class="ctx-item" onclick="colCtxInfo()">ℹ &nbsp;INFO</div>
+  <div class="ctx-item" onclick="colCtxPlay()">▶ &nbsp;PLAY</div>
+  <div style="border-top:1px solid rgba(0,245,255,.18);margin:2px 0"></div>
+  <div class="ctx-item" onclick="colCtxPause()">⏸ &nbsp;PAUSE / RESUME</div>
+  <div class="ctx-item" onclick="colCtxStop()">⏹ &nbsp;STOP</div>
+</div>
+
+<!-- ── INFO MODAL ───────────────────────────────────────────────────────── -->
+<div id="col-info-modal" class="modal-overlay" onclick="if(event.target===this)colCloseInfo()">
+  <div style="background:#0b0b1a;border:1px solid rgba(0,245,255,.22);border-radius:8px;
+    width:680px;max-height:88vh;overflow-y:auto;padding:24px 28px;position:relative">
+    <button onclick="colCloseInfo()" title="Close" style="position:absolute;top:12px;right:16px;
+      background:none;border:none;color:var(--dim);cursor:pointer;font-size:20px;line-height:1">✕</button>
+
+    <div id="col-info-loading" style="color:var(--muted);font-family:var(--font-mono);font-size:13px;padding:20px 0">Loading…</div>
+
+    <div id="col-info-content" style="display:none">
+      <div style="display:flex;gap:22px;align-items:flex-start">
+        <img id="col-info-art" style="width:148px;height:148px;object-fit:cover;border-radius:4px;
+          flex-shrink:0;border:1px solid rgba(0,245,255,.15);background:#1a1a2e">
+        <div id="col-info-details" style="flex:1;font-size:12px"></div>
+      </div>
+      <div style="margin-top:18px;font-family:var(--font-mono);font-size:10px;
+        color:var(--muted);letter-spacing:.06em;margin-bottom:6px">WAVEFORM</div>
+      <canvas id="col-info-waveform" style="width:100%;height:70px;display:block;border-radius:3px"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden audio element (always present in DOM) -->
+<audio id="player-audio" preload="none"></audio>
+
 </body>
 </html>

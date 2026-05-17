@@ -24,9 +24,18 @@ def _candidate_roots() -> list[Path]:
     """Return all plausible Engine Library root directories to check."""
     candidates: list[Path] = []
 
-    # Standard Windows location
-    music = Path(os.environ.get("USERPROFILE", "C:/Users/Default")) / "Music" / "Engine Library"
-    candidates.append(music)
+    userprofile = Path(os.environ.get("USERPROFILE", "C:/Users/Default"))
+
+    # Standard Windows Music folder
+    candidates.append(userprofile / "Music" / "Engine Library")
+
+    # OneDrive — check ONEDRIVE env var first, then common folder names
+    onedrive_root = os.environ.get("ONEDRIVE") or os.environ.get("OneDrive")
+    if onedrive_root:
+        candidates.append(Path(onedrive_root) / "Music" / "Engine Library")
+    # Also try common OneDrive personal/business paths even if env var missing
+    for od_name in ("OneDrive", "OneDrive - Personal"):
+        candidates.append(userprofile / od_name / "Music" / "Engine Library")
 
     # Check every drive letter A-Z for external drives
     for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
